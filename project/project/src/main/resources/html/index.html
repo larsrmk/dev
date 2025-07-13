@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Login & Registrierung</title>
+    <link rel="stylesheet" href="../css/style.css" />
+</head>
+<body>
+
+<div id="container">
+
+    <!-- LOGIN FORM -->
+    <form id="login-form">
+        <h2>🔒 Anmeldung</h2>
+        <input type="email" id="login-email" placeholder="E-Mail" required />
+        <input type="password" id="login-password" placeholder="Passwort" required />
+        <button type="submit">Anmelden</button>
+        <div class="error" id="login-error"></div>
+        <div class="toggle-link" id="to-register">Noch keinen Account? Registrieren</div>
+    </form>
+
+    <!-- REGISTER FORM (hidden by default) -->
+    <form id="register-form" style="display:none;">
+        <h2>📝 Registrierung</h2>
+        <input type="text" id="register-username" placeholder="Benutzername" required />
+        <div class="error" id="username-error"></div>
+        <input type="email" id="register-email" placeholder="E-Mail" required />
+        <div class="error" id="email-error"></div>
+        <input type="password" id="register-password" placeholder="Passwort" required />
+        <input type="password" id="register-password2" placeholder="Passwort wiederholen" required />
+        <div class="error" id="password-error"></div>
+        <button type="submit">Registrieren</button>
+        <div class="toggle-link" id="to-login">Bereits registriert? Anmelden</div>
+    </form>
+
+</div>
+
+<script src="scrip.js"></script>
+</body>
+</html>
