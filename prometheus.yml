@@ -1,0 +1,20 @@
+# Globale Prometheus-Einstellungen
+global:
+  scrape_interval: 15s       # Alle 15 Sekunden Metriken sammeln
+  evaluation_interval: 15s   # Alle 15 Sekunden auswerten
+  
+# Hier definierst du, von wo Prometheus Metriken sammelt
+scrape_configs:
+  # Prometheus monitort sich selbst
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          instance: 'prometheus-selbst'
+          
+  # Node Exporter (System-Metriken vom Host)
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          instance: 'rocky-linux-host'
