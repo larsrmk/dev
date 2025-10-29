@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Monitoring Stack</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            padding: 40px;
+            text-align: center;
+            max-width: 500px;
+        }
+        h1 {
+            color: #333;
+            margin-top: 0;
+        }
+        p {
+            color: #666;
+            line-height: 1.6;
+        }
+        .links {
+            margin-top: 30px;
+        }
+        a {
+            display: inline-block;
+            margin: 10px;
+            padding: 12px 25px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+        a:hover {
+            background: #764ba2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🖥️ Monitoring Stack</h1>
+        <p>Willkommen zu deinem Monitoring-System!</p>
+        <p>Dein Server wird jetzt überwacht: CPU, RAM, Disk, Network</p>
+        
+        <div class="links">
+            <h2>Zugriff auf die Services:</h2>
+            <a href="/grafana/">📊 Grafana Dashboards</a><br>
+            <a href="/prometheus/">⚙️ Prometheus</a>
+        </div>
+        
+        <p style="margin-top: 30px; font-size: 12px; color: #999;">
+            Node Exporter läuft im Hintergrund und sammelt Metriken
+        </p>
+    </div>
+</body>
+</html>
