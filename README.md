@@ -1,1 +1,1 @@
-Here are all the projects I have completed
+grafana        | logger=grafana.update.checker t=2025-10-30T09:44:38.377356304Z level=error msg="Update check failed" error="failed to get stable version from grafana.com: Get \"https://grafana.com/api/grafana/versions/stable\": dial tcp: lookup grafana.com on 127.0.0.11:53: no such host" duration=2.004865415s
