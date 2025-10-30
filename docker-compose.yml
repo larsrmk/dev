@@ -1,15 +1,12 @@
 version: '3.8'
 
 services:
-  # ===== PROMETHEUS - Zeitreihendatenbank (nur intern) =====
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
     restart: unless-stopped
     volumes:
-      # Konfiguration
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      # Persistente Speicherung
       - prometheus_/prometheus
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -18,9 +15,7 @@ services:
       - '--web.enable-lifecycle'
     networks:
       - monitoring
-    # KEIN PORT-MAPPING! Nur intern erreichbar
 
-  # ===== NODE EXPORTER - Datensammler (nur intern) =====
   node-exporter:
     image: prom/node-exporter:latest
     container_name: node-exporter
@@ -36,39 +31,34 @@ services:
       - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
     networks:
       - monitoring
-    # KEIN PORT-MAPPING! Nur intern erreichbar
 
-  # ===== GRAFANA - Visualisierung (AUF PORT 80!) =====
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
     restart: unless-stopped
     ports:
-      - "80:3000"  # DEIN EINZIGER PORT! Grafana intern 3000, extern 80
+      - "80:3000"
     environment:
-      # Login-Daten
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin123
-      - GF_USERS_ALLOW_SIGN_UP=false
-      # Server-Einstellungen (Standard-Root-Path)
-      - GF_SERVER_ROOT_URL=http://localhost/
-      - GF_SERVER_SERVE_FROM_SUB_PATH=false
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin123
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_SERVER_ROOT_URL: http://localhost/
+      GF_SERVER_SERVE_FROM_SUB_PATH: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: "false"
     volumes:
-      # Persistente Speicherung
       - grafana_/var/lib/grafana
-      # Auto-Konfiguration
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
     depends_on:
       - prometheus
     networks:
       - monitoring
 
-# ===== VOLUMES - Persistente Datenspeicherung =====
 volumes:
   prometheus_
   grafana_
 
-# ===== NETZWERK - Container-Kommunikation =====
 networks:
   monitoring:
     driver: bridge
