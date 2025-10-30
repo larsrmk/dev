@@ -1,5 +1,1 @@
-grafana  | logger=provisioning.dashboard type=file name=Default t=2025-10-30T10:17:02.942331685Z level=error msg="Cannot read directory" error="stat /var/lib/grafana/dashboards: no such file or directory"
-grafana  | logger=provisioning.dashboard type=file name=Default t=2025-10-30T10:17:02.942394225Z level=error msg="Failed to read content of symlinked path" path=/var/lib/grafana/dashboards error="lstat /var/lib/grafana/dashboards: no such file or directory"
-grafana  | logger=provisioning.dashboard type=file name=Default t=2025-10-30T10:17:02.94242468Z level=info msg="falling back to original path due to EvalSymlink/Abs failure"
-grafana  | logger=provisioning.dashboard t=2025-10-30T10:17:02.942448719Z level=warn msg="Failed to provision config" name=Default error="stat /var/lib/grafana/dashboards: no such file or directory"
-grafana  | logger=plugin.backgroundinstaller t=2025-10-30T10:17:04.441366713Z level=error msg="Failed to install plugin" pluginId=grafana-lokiexplore-app version= error="Get \"https://grafana.com/api/plugins/grafana-lokiexplore-app/versions\": dial tcp: lookup grafana.com on 127.0.0.11:53: no such host"
+
