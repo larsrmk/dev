@@ -11,6 +11,10 @@
 
 ---
 
+https://docs.gitea.com/
+
+---
+
 ## Vorbereitung und Voraussetzungen
 
 ### Systemanforderungen prüfen
