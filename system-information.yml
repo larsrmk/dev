@@ -1,0 +1,37 @@
+---
+- name: Dateien und System-Infos lernen
+  hosts: localhost
+  gather_facts: true
+  
+  tasks:
+    - name: Systeminformationen anzeigen
+      debug:
+        msg: |
+          === System Informationen ===
+          Betriebssystem: {{ ansible_distribution }}
+          Version: {{ ansible_distribution_version }}
+          Hostname: {{ ansible_hostname }}
+          CPU Cores: {{ ansible_processor_vcpus }}
+          Memory: {{ ansible_memtotal_mb }} MB
+    
+    - name: Datei erstellen
+      copy:
+        content: |
+          Das ist eine Test-Datei
+          Erstellt mit Ansible
+          Zeitstempel: {{ ansible_date_time.iso8601 }}
+        dest: /tmp/test-ansible.txt
+      register: file_result
+    
+    - name: Datei-Ergebnis anzeigen
+      debug:
+        msg: "Datei erstellt: {{ file_result.dest }}"
+    
+    - name: Datei auslesen
+      command: cat /tmp/test-ansible.txt
+      register: file_content
+      changed_when: false
+    
+    - name: Inhalt der Datei anzeigen
+      debug:
+        msg: "{{ file_content.stdout_lines }}"
