@@ -1,0 +1,27 @@
+---
+- name: System Informationen sammeln
+  hosts: localhost
+  gather_facts: true
+  connection: local
+  
+  tasks:
+    - name: Zeige Hostname
+      ansible.builtin.debug:
+        msg: "Hostname: {{ ansible_hostname }}"
+    
+    - name: Zeige Betriebssystem
+      ansible.builtin.debug:
+        msg: "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+    
+    - name: Zeige Arbeitsspeicher
+      ansible.builtin.debug:
+        msg: "RAM: {{ ansible_memtotal_mb }} MB"
+    
+    - name: Zeige CPU-Kerne
+      ansible.builtin.debug:
+        msg: "CPU Cores: {{ ansible_processor_vcpus }}"
+    
+    - name: Liste Netzwerk-Interfaces
+      ansible.builtin.debug:
+        msg: "Interfaces: {{ ansible_interfaces }}"
+
