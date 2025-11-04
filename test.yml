@@ -1,6 +1,21 @@
 version: '3.8'
 
 services:
+  nginx:
+    image: nginx:alpine
+    container_name: semaphore-nginx
+    ports:
+      - "8080:80"  # WICHTIG: Host-Port (8080) → Nginx-Port (80)
+      # Falls du einen anderen Port hast, ersetze 8080 mit deinem Port
+    volumes:
+      - ./nginx-config/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - semaphore
+    restart: unless-stopped
+    networks:
+      - semaphore-network
+
+
   postgres:
     image: postgres:14
     restart: unless-stopped
