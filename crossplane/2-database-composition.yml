@@ -1,0 +1,68 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: databases.acme.corp
+  namespace: crossplane-system
+spec:
+  compositeTypeRef:
+    apiVersion: acme.corp/v1alpha1
+    kind: XDatabase
+  
+  resources:
+  - name: main-storage
+    base:
+      apiVersion: nop.crossplane.io/v1alpha1
+      kind: NopResource
+      metadata:
+        annotations:
+          description: "Database Storage"
+      spec:
+        forProvider:
+          manifest:
+            apiVersion: v1
+            kind: ConfigMap
+            metadata:
+              namespace: crossplane-system
+            data:
+              type: "database"
+              status: "creating"
+    
+    patches:
+    - fromFieldPath: "spec.parameters.databaseName"
+      toFieldPath: "metadata.name"
+      transforms:
+      - type: string
+        string:
+          fmt: "%s-storage"
+    
+    - fromFieldPath: "spec.parameters.team"
+      toFieldPath: "metadata.labels.team"
+    
+    - fromFieldPath: "spec.parameters.databaseEngine"
+      toFieldPath: "spec.forProvider.manifest.data.engine"
+    
+    - fromFieldPath: "spec.parameters.size"
+      toFieldPath: "spec.forProvider.manifest.data.size"
+  
+  - name: backup-system
+    base:
+      apiVersion: nop.crossplane.io/v1alpha1
+      kind: NopResource
+      spec:
+        forProvider:
+          manifest:
+            apiVersion: v1
+            kind: ConfigMap
+            metadata:
+              namespace: crossplane-system
+            data:
+              type: "backup"
+              frequency: "daily"
+    
+    patches:
+    - fromFieldPath: "spec.parameters.databaseName"
+      toFieldPath: "metadata.name"
+      transforms:
+      - type: string
+        string:
+          fmt: "%s-backup"
