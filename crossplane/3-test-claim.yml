@@ -1,0 +1,11 @@
+apiVersion: acme.corp/v1alpha1
+kind: Database
+metadata:
+  name: my-app-database
+  namespace: acme-development
+spec:
+  parameters:
+    databaseName: "production-db"
+    databaseEngine: "postgresql"
+    size: "medium"
+    team: "development"
