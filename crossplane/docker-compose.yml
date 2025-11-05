@@ -1,18 +1,12 @@
-# Im WSL/Fedora Terminal (im ~/crossplane-acme Verzeichnis):
-cat > docker-compose.yml << 'EOF'
-version: '3.8'
-
 services:
-  # Toolbox: kubectl + helm im Container
+  # Toolbox: kubectl + helm 
   toolbox:
     image: dtzar/helm-kubectl:3.13.0
     container_name: acme-toolbox
     environment:
       KUBECONFIG: /root/.kube/config
     volumes:
-      # Greift auf Ihr lokales kubeconfig zu (read-only)
       - ~/.kube/config:/root/.kube/config:ro
-      # Verzeichnis für YAML-Dateien
       - ./workspace:/workspace
     working_dir: /workspace
     stdin_open: true
@@ -25,4 +19,3 @@ services:
     image: crossplane/crossplane:v1.18.2
     command: echo "crossplane image cached"
     restart: "no"
-EOF
