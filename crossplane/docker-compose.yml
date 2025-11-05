@@ -1,1 +1,44 @@
-.
+services:
+  # Image 1: k3s (Kubernetes Cluster)
+  k3s-server:
+    image: rancher/k3s:v1.28.0
+    command: server --disable=traefik --disable=servicelb
+    environment:
+      K3S_TOKEN: mytoken
+      K3S_KUBECONFIG_OUTPUT: /output/kubeconfig.yaml
+      K3S_KUBECONFIG_MODE: "666"
+    volumes:
+      - k3s-server:/var/lib/rancher/k3s
+      - ./kubeconfig:/output
+    ports:
+      - "6443:6443"
+    privileged: true
+    restart: unless-stopped
+
+  # Image 2: toolbox (kubectl + helm)
+  toolbox:
+    image: dtzar/helm-kubectl:3.13.0
+    container_name: acme-toolbox
+    depends_on:
+      - k3s-server
+    environment:
+      KUBECONFIG: /root/.kube/kubeconfig.yaml
+    volumes:
+      - ./kubeconfig/kubeconfig.yaml:/root/.kube/kubeconfig.yaml:ro
+      - ./workspace:/workspace
+    working_dir: /workspace
+    stdin_open: true
+    tty: true
+    command: sleep infinity
+    restart: unless-stopped
+
+  # Image 3: crossplane (Image cachen)
+  crossplane-image:
+    image: crossplane/crossplane:v1.18.2
+    command: echo "Crossplane image cached"
+    restart: "no"
+
+volumes:
+  k3s-server: {}
+
+
