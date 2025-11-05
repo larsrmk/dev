@@ -1,8 +1,9 @@
-# Im WSL/Fedora, im Verzeichnis ~/crossplane-project, tippen Sie:
+# Im WSL/Fedora Terminal, im Verzeichnis ~/crossplane-acme:
 cat > docker-compose.yml << 'EOF'
 version: '3.8'
 
 services:
+  # Image 1: k3s (Kubernetes Cluster)
   k3s-server:
     image: rancher/k3s:v1.28.0
     command: server --disable=traefik --disable=servicelb
@@ -18,6 +19,7 @@ services:
     privileged: true
     restart: unless-stopped
 
+  # Image 2: toolbox (kubectl + helm Werkzeuge)
   toolbox:
     image: dtzar/helm-kubectl:3.13.0
     container_name: acme-toolbox
@@ -33,6 +35,12 @@ services:
     tty: true
     command: sleep infinity
     restart: unless-stopped
+
+  # Image 3: crossplane (Image cachen)
+  crossplane-image:
+    image: crossplane/crossplane:v1.18.2
+    command: echo "Crossplane image cached"
+    restart: "no"
 
 volumes:
   k3s-server: {}
