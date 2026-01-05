@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+
+    <link rel="stylesheet" href="styles.css">
+
+
+    <h1>Hauptüberschrift</h1>
+    <h2>2. Uberschrift</h2>
+    <h3>3. Uberschrift</h3>
+    <h4>4. Uberschrift</h4>
+    <h5>5. Uberschrift</h5>
+    <h6>6. Uberschrift</h6>
+
+    <p>Fett: <b>b</b></p>
+    <p>Kursiv: <i>i</i></p>
+    <p>Unterstrichen: <u>u</u></p>
+    <p>Durchgestrichen: <s>s</s></p>
+    <p>Kleiner: <small>small</small></p>
+    <p>Größer: <big>big</big></p>
+    <p>Untergestellt:<sub>sub</sub></p>
+    <p>Hochgestellt:<sup>sup</sup></p>
+
+    <h1 style="background-color: black; width:fit-content; padding: 15px;">
+        <span style="color: darkred;">R</span>
+        <span style="color: orange;">E</span>
+        <span style="color: green;">G</span>
+        <span style="color: blue;">E</span>
+        <span style="color: red;">N</span>
+        <span style="color: yellow;">B</span>
+        <span style="color: purple;">O</span>
+        <span style="color: lightgreen;">G</span>
+        <span style="color: pink;">E</span>
+        <span style="color: cyan;">N</span>
+    </h1>
+
+    <hr>
+    <hr>
+    <hr>
+
+    <div class="thema">
+        <h2>1.2 Listen in HTML</h2>
+        <h5>Normale Liste</h5>
+        <ul style="list-style-type: disc;">
+            <li>Erstes Element</li>
+            <li>Zweites Element</li>
+            <li>Drittes Element</li>
+        </ul>
+        <ul style="list-style-type: circle;">
+            <li>Erstes Element</li>
+            <li>Zweites Element</li>
+            <li>Drittes Element</li>
+        </ul>
+        <ul style="list-style-type: square;">
+            <li>Erstes Element</li>
+            <li>Zweites Element
+            <li>Drittes Element</li>
+        </ul>
+        <h5>Geordnete Liste/Nummerierte Liste</h5>
+        <ol type="1">
+            <li>Erstes Element</li>
+            <li>Zweites Element</li>
+            <li>Drittes Element</li>
+        </ol>
+        <ol type="A">
+            <li>Erstes Element</li>
+            <li>Zweites Element</li>
+            <li>Drittes Element</li>
+        </ol>
+        <ol type="a">
+            <li>Erstes Element</li>
+            <li>Zweites Element</li>
+            <li>Drittes Element</li>
+        </ol>
+        <ol type="I">
+            <li>Erstes Element</li>
+            <li>Zweites Element</li>
+            <li>Drittes Element</li>
+            <li>Viertes Element</li>
+            <li>Fünftes Element</li>
+        </ol>
+        <ol type="i">
+            <li>Erstes Element</li>
+            <li>Zweites Element</li>
+            <li>Drittes Element</li>
+            <li>Viertes Element</li>
+            <li>Fünftes Element</li>
+        </ol>
+    </div>
+    <h5>Sonderfälle</h5>
+    <ol start="5">
+        <li>Erstes Element</li>
+        <li>Zweites Element</li>
+        <li>Drittes Element</li>
+    </ol>
+    <ol>
+        <li>Erstes Element</li>
+        <li value="6">Zweiter Punkt (beginnt bei 5)</li>
+        <li value="3">Drittes Element</li>
+        <li>Viertes Element</li>
+        <li>Fünftes Element</li>
+    </ol>
+    <h5>Verschachtelte Listen</h5>
+    <ul>
+        <li style="list-style-type: square;">Frühstück
+            <ul style="list-style-type: disc;">
+                <li>Porridge mit Obst</li>
+                <li>Eier mit Brot</li>
+                <li>Kaffee</li>
+            </ul>
+        </li>
+
+        <li style="list-style-type: square;">Mittagessen
+            <ul style="list-style-type: disc;">
+                <li>Schnitzel mit Pommes</li>
+                <li>Vegetarischer Bratling mit Champinion
+                    <ul style="list-style-type: circle;">
+                        <li>Reis</li>
+                        <li>Salat</li>
+                    </ul>
+                </li>
+                    
+            </ul>
+        </li>
+
+        <li style="list-style-type: square;">Kaffee und Kuchen</li>
+
+        <li style="list-style-type: square;">Abendessen
+            <ul style="list-style-type: disc;">
+                <li>Vegane Aufstriche</li>
+                <li>Schinkenplatte</li>
+            </ul>
+        </li>
+    </ul>
+
+    <ol>
+        <li>Erstes Element
+            <ol>
+                <li>Erstes Element</li>
+                <li>Zweites Element</li>
+                <li>Drittes Element</li>
+            </ol>
+        </li>
+        <li>Zweites Element</li>
+        <li>Drittes Element</li>
+    </ol>
+    <h5>Definitionsliste</h5>
+    <dl>
+        <dt>Term 1</dt>
+        <dd>Definition 1</dd>
+        <dt>Term 2</dt>
+        <dd>Definition 2</dd>
+        <dt>Term 3</dt>
+        <dd>Definition 3</dd>
+    </dl>
+
+    <hr>
+    <hr>
+    <hr>
+
+    <h2>1.3 Tabellen in HTML</h2>
+    <table border="1" style="border-collapse: collapse; width: 100%; text-align: center;">
+        <tr>
+            <th>Header 1</th>
+            <th>Header 2</th>
+            <th>Header 3</th>
+        </tr>
+        <tr>
+            <td>Zeile 1, Spalte 1</td>
+            <td>Zeile 1, Spalte 2</td>
+            <td>Zeile 1, Spalte 3</td>
+        </tr>
+        <tr>
+            <td>Zeile 2, Spalte 1</td>
+            <td>Zeile 2, Spalte 2</td>
+            <td>Zeile 2, Spalte 3</td>
+        </tr>
+        <tr>
+            <td>Zeile 3, Spalte 1</td>
+            <td>Zeile 3, Spalte 2</td>
+            <td>Zeile 3, Spalte 3</td>
+        </tr>
+    </table>
+
+    <h5>Spalten zusammenfassen</h5>
+    <table border="1" style="border-collapse: collapse; width: 100%; text-align: center;">
+        <tr>
+            <th>Header 1</th>
+            <th>Header 2</th>
+            <th>Header 3</th>
+        </tr>
+        <tr>
+            <td>Zeile 1, Spalte 1</td>
+            <td colspan="2" style="background-color: yellow;">Zeile 1, Spalte 2 + Zeile 1, Spalte 3</td>
+        </tr>
+        <tr>
+            <td>Zeile 2, Spalte 1</td>
+            <td>Zeile 2, Spalte 2</td>
+            <td>Zeile 2, Spalte 3</td>
+        </tr>
+        <tr>
+            <td>Zeile 3, Spalte 1</td>
+            <td>Zeile 3, Spalte 2</td>
+            <td>Zeile 3, Spalte 3</td>
+        </tr>
+    </table>
+    <h5>Zeilen zusammenfassen</h5>
+    <table border="1" style="border-collapse: collapse; width: 100%; text-align: center;">
+        <tr>
+            <th>Header 1</th>
+            <th>Header 2</th>
+            <th>Header 3</th>
+        </tr>
+        <tr>
+            <td rowspan="2" style="background-color: yellow;">Zeile 1, Spalte 1 + <br> Zeile 2, Spalte 1</td>
+            <td>Zeile 1, Spalte 2</td>
+            <td>Zeile 1, Spalte 3</td>
+        </tr>
+        <tr>
+            <td>Zeile 2, Spalte 2</td>
+            <td>Zeile 2, Spalte 3</td>
+        </tr>
+        <tr>
+            <td>Zeile 3, Spalte 1</td>
+            <td>Zeile 3, Spalte 2</td>
+            <td>Zeile 3, Spalte 3</td>
+        </tr>
+    </table>
+
+    <hr>
+    <hr>
+    <hr>
+
+    <h2>1.4 Hyperlinks</h2>
+    <h5>Bilder einfügen</h5>
+    <p><img src="/pics/A whimsical scene of a plump forest creature….jpg" alt="Dieser Text wird bei Bildfehlern erscheinen" width="300em"></p>
+    <h5>Links einfügen</h5>
+    <p><a href="https://www.loremipsum.de/">Loremipsum Generator</a></p>
+
+    <hr>
+    <hr>
+    <hr>
+
+    <h2>1.5 Formulare</h2>
+    <form action="index.html" method="get">
+        <!--Formular-->
+        <fieldset>
+            <legend>Persönliche Daten</legend>
+            <label for="name">Vorname: </label>
+            <input type="text" id="name" name="name"><br><br>
+
+            <label for="nachname">Nachname: </label>
+            <input type="text" id="nachname" name="nachname"><br><br>
+
+            <label for="email">E-Mail: </label>
+            <input type="email" id="email" name="email"><br><br>
+
+            <label for="telefonnummer">Telefonnummer:</label>
+            <input type="tel" id="telefonnummer" name="telefonnummer" pattern="[0-9] {10}" placeholder="0123456789"><br><br>
+
+
+            <label for="geburtstag">Geburtstag:</label>
+            <input type="date" id="geburtstag" name="geburtstag"><br><br>
+
+            <label for="geschlecht">Geschlecht:</label>
+            <select id="geschlecht" name="geschlecht">
+                <option value="männlich">Männlich</option>
+                <option value="weiblich">Weiblich</option>
+                <option value="divers">Divers</option>
+            </select><br><br>
+
+            <input type="submit" value="Absenden">
+            <input type="reset" value="Zurücksetzen">
+
+        </fieldset>
+
+        <!--Radiobuttons: hier ist nur eine Auswahl möglich-->
+        <fieldset>
+            <legend>Pizzakategorie</legend>
+            <h1>Ihre Pizza:<br>
+                Wählen Sie Ihre Kategorie!</h1>
+
+            <input type="radio" id="k1" name="kategorie" value="fleisch" checked>
+            <label for="kategorie">Fleisch</label><br>
+
+            <input type="radio" id="k2" name="kategorie" value="vegetarisch">
+            <label for="kategorie">Vegetarisch</label><br>
+
+            <input type="radio" id="k3" name="kategorie" value="vegan">
+            <label for="kategorie">Vegan</label><br>
+        </fieldset>
+    </form>
+</head>
+<body>
+</body>
+</html>
