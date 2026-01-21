@@ -1,0 +1,32 @@
+# platform-helm-chart/templates/applicationset.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: platform-apps
+  namespace: argocd
+spec:
+  generators:
+  - list:
+      elements:
+      {{- range .Values.deployedApps }}
+      - app: {{ . }}
+      {{- end }}
+  
+  template:
+    metadata:
+      name: '{{`{{app}}`}}'
+    spec:
+      project: default
+      source:
+        repoURL: https://github.com/dein-repo/platform-helm-chart
+        targetRevision: HEAD
+        path: 'apps/{{`{{app}}`}}'
+        helm:
+          releaseName: '{{`{{app}}`}}'
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{`{{app}}`}}'
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
