@@ -1,0 +1,173 @@
+# ArgoCD Helm Chart values.yaml - Lokales Kubernetes Cluster
+# Minimalistisch und produktionsreif für Home Lab / Entwicklung
+# Authentifizierung über Browser möglich mit vorkonfigurierten Credentials
+
+global:
+  domain: argocd.local
+
+# ============================================================================
+# ArgoCD Server (Web UI + API)
+# ============================================================================
+server:
+  enabled: true
+  
+  # Service für Port Forwarding
+  service:
+    type: ClusterIP
+    port: 80
+    targetPort: 8080
+  
+  # Ingress optional (für direkten Browser-Zugriff ohne Port Forwarding)
+  ingress:
+    enabled: false
+    # Wenn du später Ingress brauchst:
+    # ingressClassName: nginx
+    # hosts:
+    #   - argocd.local
+    # tls:
+    #   - secretName: argocd-tls
+    #     hosts:
+    #       - argocd.local
+
+  # Initial Password & Benutzer
+  # Passwort ändern nach erstem Login empfohlen!
+  adminPassword: "$2a$10$hSta8GJV2.8/g8Bw.P/LSu/fqL2fxSaMnK7eN.0Y8x/WOPZfO5Ymy"  # admin / admin (bcrypt)
+  
+  # Weitere Authentifizierung (optional)
+  config:
+    # RBAC-Regeln
+    policy.default: role:readonly
+    policy.csv: |
+      p, role:admin, applications, *, */*, allow
+      p, role:admin, certificates, *, *, allow
+      p, role:admin, clusters, *, *, allow
+      p, role:admin, repositories, *, *, allow
+      p, role:admin, logs, *, *, allow
+      p, role:readonly, applications, get, */*, allow
+      p, role:readonly, repositories, get, *, allow
+      g, admin, role:admin
+      
+    # URL für ArgoCD
+    url: https://argocd.local
+
+# ============================================================================
+# ArgoCD Repo Server
+# ============================================================================
+repoServer:
+  enabled: true
+  replicas: 1
+  
+  # Service für Repo-Server
+  service:
+    type: ClusterIP
+    port: 8081
+
+# ============================================================================
+# ArgoCD Controller (Reconciliation Engine)
+# ============================================================================
+controller:
+  enabled: true
+  replicas: 1
+
+# ============================================================================
+# ArgoCD Dex (OAuth2/OIDC) - Optional
+# ============================================================================
+dex:
+  enabled: false
+  # Wenn du OAuth brauchst, hier konfigurieren
+
+# ============================================================================
+# Redis (Cache für ArgoCD)
+# ============================================================================
+redis:
+  enabled: true
+  
+  auth:
+    enabled: false  # Für lokales Cluster nicht notwendig
+  
+  replica:
+    replicas: 0  # Für Home Lab: nur eine Redis-Instance
+
+# ============================================================================
+# Application Controller Notifications
+# ============================================================================
+notifications:
+  enabled: false  # Optional, für WebHooks deaktiviert
+
+# ============================================================================
+# ArgoCD Image & General Settings
+# ============================================================================
+image:
+  # Nutze Latest stabile Version für Entwicklung
+  repository: quay.io/argoproj/argocd
+  tag: v2.10.0
+  imagePullPolicy: IfNotPresent
+
+# ============================================================================
+# Persistence (Optional - Logs)
+# ============================================================================
+configs:
+  # ArgoCD Konfiguration
+  secret:
+    argocdServerAdminPassword: admin
+    argocdServerAdminPasswordMtime: "2026-01-21T00:00:00Z"
+  
+  # Application Controller Config
+  applicationController: {}
+  
+  # Repo Server Config
+  repositoryCredentials: []
+  # Beispiel für Git Repository:
+  # - url: https://github.com
+  #   username: dein-username
+  #   password: dein-token
+
+# ============================================================================
+# RBAC (bereits in server.config.policy definiert)
+# ============================================================================
+rbac:
+  create: true
+
+# ============================================================================
+# Service Account
+# ============================================================================
+serviceAccount:
+  create: true
+  name: argocd
+
+# ============================================================================
+# ClusterRole & ClusterRoleBinding
+# ============================================================================
+clusterAdminAccess:
+  enabled: true
+
+# ============================================================================
+# Resources - Minimal für Home Lab
+# ============================================================================
+resources:
+  limits:
+    cpu: 500m
+    memory: 512Mi
+  requests:
+    cpu: 250m
+    memory: 256Mi
+
+# ============================================================================
+# Node Selector (optional - falls mehrere Nodes)
+# ============================================================================
+nodeSelector: {}
+
+# ============================================================================
+# Tolerations (optional - falls Taints vorhanden)
+# ============================================================================
+tolerations: []
+
+# ============================================================================
+# Affinity (optional)
+# ============================================================================
+affinity: {}
+
+# ============================================================================
+# Security Context
+# ============================================================================
+securityContext:
