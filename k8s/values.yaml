@@ -1,173 +1,145 @@
-# ArgoCD Helm Chart values.yaml - Lokales Kubernetes Cluster
-# Minimalistisch und produktionsreif für Home Lab / Entwicklung
-# Authentifizierung über Browser möglich mit vorkonfigurierten Credentials
+# Cert-Manager Helm Chart values.yaml - Lokales Kubernetes Cluster
+# Minimalistisch für Home Lab / Entwicklung
+# Webhook Service für Port Forwarding
+# Keine Ingress-Klasse erforderlich für lokales Setup
 
+# ============================================================================
+# Global Settings
+# ============================================================================
 global:
-  domain: argocd.local
-
-# ============================================================================
-# ArgoCD Server (Web UI + API)
-# ============================================================================
-server:
-  enabled: true
+  # Keine Ingress-Klasse für lokales Cluster erforderlich
+  ingressClass: ""
   
-  # Service für Port Forwarding
-  service:
-    type: ClusterIP
-    port: 80
-    targetPort: 8080
-  
-  # Ingress optional (für direkten Browser-Zugriff ohne Port Forwarding)
-  ingress:
-    enabled: false
-    # Wenn du später Ingress brauchst:
-    # ingressClassName: nginx
-    # hosts:
-    #   - argocd.local
-    # tls:
-    #   - secretName: argocd-tls
-    #     hosts:
-    #       - argocd.local
-
-  # Initial Password & Benutzer
-  # Passwort ändern nach erstem Login empfohlen!
-  adminPassword: "$2a$10$hSta8GJV2.8/g8Bw.P/LSu/fqL2fxSaMnK7eN.0Y8x/WOPZfO5Ymy"  # admin / admin (bcrypt)
-  
-  # Weitere Authentifizierung (optional)
-  config:
-    # RBAC-Regeln
-    policy.default: role:readonly
-    policy.csv: |
-      p, role:admin, applications, *, */*, allow
-      p, role:admin, certificates, *, *, allow
-      p, role:admin, clusters, *, *, allow
-      p, role:admin, repositories, *, *, allow
-      p, role:admin, logs, *, *, allow
-      p, role:readonly, applications, get, */*, allow
-      p, role:readonly, repositories, get, *, allow
-      g, admin, role:admin
-      
-    # URL für ArgoCD
-    url: https://argocd.local
+  # Leader Election für HA (optional für Home Lab)
+  leaderElection: false
 
 # ============================================================================
-# ArgoCD Repo Server
+# Cert-Manager Controller
 # ============================================================================
-repoServer:
-  enabled: true
-  replicas: 1
-  
-  # Service für Repo-Server
-  service:
-    type: ClusterIP
-    port: 8081
+installCRDs: true  # WICHTIG: Installiert Certificate CRDs
 
-# ============================================================================
-# ArgoCD Controller (Reconciliation Engine)
-# ============================================================================
-controller:
-  enabled: true
-  replicas: 1
+replicaCount: 1
 
-# ============================================================================
-# ArgoCD Dex (OAuth2/OIDC) - Optional
-# ============================================================================
-dex:
-  enabled: false
-  # Wenn du OAuth brauchst, hier konfigurieren
-
-# ============================================================================
-# Redis (Cache für ArgoCD)
-# ============================================================================
-redis:
-  enabled: true
-  
-  auth:
-    enabled: false  # Für lokales Cluster nicht notwendig
-  
-  replica:
-    replicas: 0  # Für Home Lab: nur eine Redis-Instance
-
-# ============================================================================
-# Application Controller Notifications
-# ============================================================================
-notifications:
-  enabled: false  # Optional, für WebHooks deaktiviert
-
-# ============================================================================
-# ArgoCD Image & General Settings
-# ============================================================================
 image:
-  # Nutze Latest stabile Version für Entwicklung
-  repository: quay.io/argoproj/argocd
-  tag: v2.10.0
-  imagePullPolicy: IfNotPresent
+  repository: quay.io/jetstack/cert-manager-controller
+  tag: "v1.15.3"  # Aktuelle stabile Version (Jan 2026)
+  pullPolicy: IfNotPresent
 
-# ============================================================================
-# Persistence (Optional - Logs)
-# ============================================================================
-configs:
-  # ArgoCD Konfiguration
-  secret:
-    argocdServerAdminPassword: admin
-    argocdServerAdminPasswordMtime: "2026-01-21T00:00:00Z"
-  
-  # Application Controller Config
-  applicationController: {}
-  
-  # Repo Server Config
-  repositoryCredentials: []
-  # Beispiel für Git Repository:
-  # - url: https://github.com
-  #   username: dein-username
-  #   password: dein-token
-
-# ============================================================================
-# RBAC (bereits in server.config.policy definiert)
-# ============================================================================
-rbac:
-  create: true
-
-# ============================================================================
 # Service Account
-# ============================================================================
 serviceAccount:
   create: true
-  name: argocd
+  name: cert-manager
+  annotations: {}
 
-# ============================================================================
-# ClusterRole & ClusterRoleBinding
-# ============================================================================
-clusterAdminAccess:
+# Webhook Server (für Certificate Validation)
+webhook:
   enabled: true
+  
+  # Service für Port Forwarding (falls nötig)
+  service:
+    type: ClusterIP
+    port: 10250
+    targetPort: 10250
+
+# Ingress (optional - für lokales Setup deaktiviert)
+ingressShim:
+  default: false
 
 # ============================================================================
-# Resources - Minimal für Home Lab
+# Resources - Home Lab optimiert
 # ============================================================================
 resources:
   limits:
-    cpu: 500m
-    memory: 512Mi
-  requests:
-    cpu: 250m
+    cpu: 200m
     memory: 256Mi
-
-# ============================================================================
-# Node Selector (optional - falls mehrere Nodes)
-# ============================================================================
-nodeSelector: {}
-
-# ============================================================================
-# Tolerations (optional - falls Taints vorhanden)
-# ============================================================================
-tolerations: []
-
-# ============================================================================
-# Affinity (optional)
-# ============================================================================
-affinity: {}
+  requests:
+    cpu: 100m
+    memory: 128Mi
 
 # ============================================================================
 # Security Context
 # ============================================================================
 securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: false
+  runAsNonRoot: true
+  runAsUser: 1000
+  fsGroup: 2000
+
+# Pod Security Context
+podSecurityContext:
+  fsGroup: 2000
+  runAsNonRoot: true
+  runAsUser: 1000
+  seccompProfile:
+    type: RuntimeDefault
+
+# ============================================================================
+# Node Selector / Tolerations (optional)
+# ============================================================================
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+# ============================================================================
+# RBAC
+# ============================================================================
+rbac:
+  create: true
+  # Cluster-wide Permissions für Certificate Signing
+  clusterWide: true
+
+# ============================================================================
+# Additional Volumes & VolumeMounts (optional)
+# ============================================================================
+extraArgs:
+  # Verbose Logging für Debugging
+  - --v=2
+  # Enable Leader Election (false für Single Node)
+  - --leader-elect=false
+  # Disable Caching für schnelleres Testing
+  - --enable-certificate-owner-ref=true
+
+# ============================================================================
+# Monitoring (optional)
+# ============================================================================
+prometheus:
+  enabled: false
+
+# ============================================================================
+# Priority Class (optional)
+# ============================================================================
+priorityClassName: ""
+
+# ============================================================================
+# Revision History
+# ============================================================================
+revisionHistoryLimit: 3
+
+# ============================================================================
+# Beispiel Certificate nach Installation
+# ============================================================================
+# Nach der Installation kannst du so ein Self-Signed Certificate erstellen:
+#
+# cat <<EOF | kubectl apply -f -
+# apiVersion: cert-manager.io/v1
+# kind: ClusterIssuer
+# meta
+#   name: selfsigned-issuer
+# spec:
+#   selfSigned: {}
+# ---
+# apiVersion: cert-manager.io/v1
+# kind: Certificate
+# meta
+#   name: my-local-cert
+#   namespace: default
+# spec:
+#   secretName: my-local-cert-tls
+#   issuerRef:
+#     name: selfsigned-issuer
+#     kind: ClusterIssuer
+#   commonName: argocd.local
+# EOF
