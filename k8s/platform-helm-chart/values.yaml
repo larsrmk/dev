@@ -1,88 +1,11 @@
----
-# values.yaml for Platform Helm Chart
-# Define all applications you want to deploy here
+gitea:
+  url: "http://gitea.gitea:3000"
+  org: "infrastructure"
+  repo: "platform-config"
+  branch: "main"
 
-# Platform metadata
-platform:
-  name: platform
-  namespace: argocd  # ArgoCD namespace where ApplicationSet will be created
-
-# Applications to deploy via ArgoCD
-# Each entry defines a Helm chart to be deployed from the Apps folder
-applications:
-  # Example application structure:
-  # - name: app-name                         # Unique identifier for the application
-  #   namespace: target-namespace             # Target namespace where the app will be deployed
-  #   repoURL: https://gitea-url/org/repo    # Git repository containing the Helm chart
-  #   path: apps/app-name                    # Path to the Helm chart in the repository
-  #   targetRevision: main                   # Git branch/tag
-  #   chart: app-name                        # Chart name (if using external repo)
-  #   values:                                # Custom values for this specific application
-  #     key: value
-
-  # Example 1: Deploy from local Git repository
-  - name: myapp-backend
-    namespace: production
-    repoURL: https://your-gitea-instance/your-org/meta-charts.git
-    path: apps/myapp-backend
-    targetRevision: main
-    values:
-      replicas: 3
-      image:
-        tag: "1.0.0"
-
-  # Example 2: Another application
-  - name: myapp-frontend
-    namespace: production
-    repoURL: https://your-gitea-instance/your-org/meta-charts.git
-    path: apps/myapp-frontend
-    targetRevision: main
-    values:
-      replicas: 2
-
-  # Example 3: Application in different namespace
-  - name: monitoring-stack
-    namespace: monitoring
-    repoURL: https://your-gitea-instance/your-org/meta-charts.git
-    path: apps/monitoring
-    targetRevision: main
-    values:
-      retention: 30d
-
-  # Example 4: Application with minimal config (uses chart defaults)
-  - name: utilities
-    namespace: utilities
-    repoURL: https://your-gitea-instance/your-org/meta-charts.git
-    path: apps/utilities
-    targetRevision: main
-
-# RBAC Configuration
-rbac:
-  enabled: true
-  # ServiceAccount name for ArgoCD (usually "argocd-application-controller")
-  serviceAccountName: argocd-application-controller
-  # Namespaces where the ServiceAccount should have permissions
-  # These are automatically extracted from applications[].namespace
-  # But you can add additional namespaces here if needed
-  additionalNamespaces: []
-
-# ArgoCD sync policy settings
-syncPolicy:
-  automated:
-    prune: true        # Automatically prune resources not in Git
-    selfHeal: true     # Automatically sync when cluster diverges from Git
-  syncOptions:
-    - CreateNamespace=true  # Create target namespace if it doesn't exist
-
-# ArgoCD project
-project: default
-
-# Labels for all resources
-labels:
-  app.kubernetes.io/name: platform
-  app.kubernetes.io/part-of: platform
-  app.kubernetes.io/managed-by: helm
-
-# Annotations for resources
-annotations:
-  description: "Platform meta-chart for deploying multiple Helm charts"
+apps:
+  - name: "prometheus"
+    namespace: "monitoring"
+    enabled: true
+    gitPath: "apps/prometheus"
