@@ -1,0 +1,73 @@
+---
+# templates/applicationset.yaml
+# ArgoCD ApplicationSet that dynamically generates Applications
+# from the applications list in values.yaml
+# Each application is deployed to its target namespace
+
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: {{ .Values.platform.name }}
+  namespace: {{ .Values.platform.namespace }}
+  labels:
+    {{- toYaml .Values.labels | nindent 4 }}
+  annotations:
+    {{- toYaml .Values.annotations | nindent 4 }}
+spec:
+  # List generator that creates an Application for each entry in values.yaml
+  generators:
+    - list:
+        elements:
+          {{- toYaml .Values.applications | nindent 10 }}
+
+  # Template for each generated Application
+  template:
+    metadata:
+      name: "{{ .values.name }}"
+      namespace: {{ .Values.platform.namespace }}
+      labels:
+        {{- toYaml .Values.labels | nindent 8 }}
+        app.kubernetes.io/instance: "{{ .values.name }}"
+      annotations:
+        {{- toYaml .Values.annotations | nindent 8 }}
+        target-namespace: "{{ .values.namespace }}"
+
+    spec:
+      # ArgoCD project
+      project: {{ .Values.project }}
+
+      # Source configuration - tells ArgoCD where to find the Helm chart
+      source:
+        repoURL: "{{ .values.repoURL }}"
+        path: "{{ .values.path }}"
+        targetRevision: "{{ .values.targetRevision }}"
+        
+        # Helm configuration
+        helm:
+          releaseName: "{{ .values.name }}"
+          
+          # Custom values for this application
+          {{- if .values.values }}
+          values: |
+            {{- toYaml .values.values | nindent 12 }}
+          {{- end }}
+
+      # Destination configuration - where to deploy the application
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: "{{ .values.namespace }}"
+
+      # Sync policy - how ArgoCD should manage the application
+      syncPolicy:
+        {{- toYaml .Values.syncPolicy | nindent 8 }}
+        # Additional sync options
+        syncOptions:
+          {{- toYaml .Values.syncPolicy.syncOptions | nindent 10 }}
+          - ServerSideApply=true  # Use server-side apply for better conflict handling
+          - PrunePropagationPolicy=foreground
+
+      # Retry configuration for failed syncs
+      revisionHistoryLimit: 10
+
+      # Additional ArgoCD settings
+      ignoreDifferences: []
