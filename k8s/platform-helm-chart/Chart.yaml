@@ -1,0 +1,6 @@
+apiVersion: v2
+name: platform
+description: "Platform Helm Chart für ArgoCD-basierte Multi-App-Deployment"
+type: application
+version: 1.0.0
+appVersion: "1.0"
