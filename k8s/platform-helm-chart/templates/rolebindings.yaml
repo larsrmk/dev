@@ -1,0 +1,57 @@
+---
+# templates/rolebindings.yaml
+# RoleBindings that grant the ClusterRole to the ArgoCD ServiceAccount
+# for each target namespace in the applications list
+
+{{- if .Values.rbac.enabled }}
+{{- $namespaces := list .Values.platform.namespace }}
+
+{{- range .Values.applications }}
+{{- if not (has .namespace $namespaces) }}
+{{- $namespaces = append $namespaces .namespace }}
+{{- end }}
+{{- end }}
+
+{{- range $namespace := $namespaces }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ .Values.platform.name }}-helm-deployment
+  namespace: {{ $namespace }}
+  labels:
+    {{- toYaml .Values.labels | nindent 4 }}
+  annotations:
+    {{- toYaml .Values.annotations | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ .Values.platform.name }}-helm-deployment
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Values.rbac.serviceAccountName }}
+    namespace: {{ .Values.platform.namespace }}
+{{- end }}
+
+{{- range .Values.rbac.additionalNamespaces }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ .Values.platform.name }}-helm-deployment
+  namespace: {{ . }}
+  labels:
+    {{- toYaml $.Values.labels | nindent 4 }}
+  annotations:
+    {{- toYaml $.Values.annotations | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ .Values.platform.name }}-helm-deployment
+subjects:
+  - kind: ServiceAccount
+    name: {{ $.Values.rbac.serviceAccountName }}
+    namespace: {{ $.Values.platform.namespace }}
+{{- end }}
+
+{{- end }}
