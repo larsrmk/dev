@@ -1,0 +1,25 @@
+{{- range .Values.applications }}
+{{- if .enabled }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+meta
+  name: platform-deployer-binding
+  namespace: {{ .namespace }}
+  labels:
+    app.kubernetes.io/name: {{ .name }}
+    app.kubernetes.io/managed-by: platform-chart
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: platform-deployer-role
+subjects:
+  - kind: ServiceAccount
+    name: {{ .Values.serviceAccount.name }}
+    namespace: {{ .Release.Namespace }}
+  # Auch ArgoCD ServiceAccount hinzufügen
+  - kind: ServiceAccount
+    name: argocd-application-controller
+    namespace: {{ .Values.argocd.namespace }}
+{{- end }}
+{{- end }}

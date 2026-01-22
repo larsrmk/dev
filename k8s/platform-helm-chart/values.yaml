@@ -1,11 +1,51 @@
-gitea:
-  url: "http://gitea.gitea:3000"
-  org: "infrastructure"
-  repo: "platform-config"
-  branch: "main"
+# Platform Chart - Konfiguration
+namespace:
+  # Namen der Namespaces für die Apps
+  createMissing: true  # Erstelle Namespaces, falls nicht vorhanden
 
-apps:
-  - name: "prometheus"
-    namespace: "monitoring"
+# Liste der zu deployenden Apps aus dem apps/ Ordner
+applications:
+  # App 1 - Beispiel
+  - name: app1
     enabled: true
-    gitPath: "apps/prometheus"
+    namespace: app1-ns
+    # Gitea Repo für dieses spezifische Chart
+    gitea:
+      repo: "http://gitea.local:3000/myorg/app1-helm-chart.git"
+      branch: "main"
+      path: "."  # Pfad zum Helm Chart im Repo (hier Root)
+    
+    # Helm Values (optional)
+    values: {}
+      # replicas: 2
+      # image:
+      #   tag: "1.0.0"
+
+  # App 2 - Mit unterschiedlichem Repo
+  - name: app2
+    enabled: true
+    namespace: app2-ns
+    gitea:
+      repo: "http://gitea.local:3000/myorg/app2-helm-chart.git"
+      branch: "main"
+      path: "."
+    values: {}
+
+  # App 3 - Deaktiviert (wird nicht deployed)
+  - name: app3
+    enabled: false
+    namespace: app3-ns
+    gitea:
+      repo: "http://gitea.local:3000/myorg/app3-helm-chart.git"
+      branch: "main"
+      path: "."
+    values: {}
+
+# ArgoCD Konfiguration
+argocd:
+  namespace: "argocd"  # Namespace, wo ArgoCD läuft
+  
+# ServiceAccount für Platform Chart
+serviceAccount:
+  name: platform-deployer
+  namespace: "{{ .Release.Namespace }}"

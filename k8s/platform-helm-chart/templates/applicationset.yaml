@@ -1,15 +1,61 @@
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
-metadata:
+meta
   name: platform-apps
   namespace: {{ .Values.argocd.namespace }}
+  labels:
+    app.kubernetes.io/name: platform
+    app.kubernetes.io/managed-by: platform-chart
 spec:
   generators:
+    # List Generator für alle enabled Applications
     - list:
         elements:
-          {{- range .Values.apps }}
+          {{- range .Values.applications }}
           {{- if .enabled }}
           - name: {{ .name }}
             namespace: {{ .namespace }}
-{{- end }}
-{{- end }}
+            repo: {{ .gitea.repo | quote }}
+            branch: {{ .gitea.branch }}
+            path: {{ .gitea.path }}
+            values: {{ .values | toJson }}
+          {{- end }}
+          {{- end }}
+  
+  template:
+    meta
+      name: '{{ .name }}'
+      namespace: {{ .Values.argocd.namespace }}
+      labels:
+        app.kubernetes.io/name: '{{ .name }}'
+        app.kubernetes.io/instance: platform
+    
+    spec:
+      project: default
+      
+      source:
+        repoURL: '{{ .repo }}'
+        targetRevision: '{{ .branch }}'
+        path: '{{ .path }}'
+        plugin:
+          name: helm
+          env:
+            - name: HELM_RELEASE_NAME
+              value: '{{ .name }}'
+      
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{ .namespace }}'
+      
+      syncPolicy:
+        syncOptions:
+          - CreateNamespace=true  # Fallback für Namespace-Erstellung
+        automated:
+          prune: true
+          selfHeal: true
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m
