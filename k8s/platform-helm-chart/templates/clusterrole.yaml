@@ -1,92 +1,10 @@
----
-# templates/clusterrole.yaml
-# ClusterRole that defines permissions for the ArgoCD ServiceAccount
-# Allows creating, updating, and managing Helm chart deployments
-
+{{- if .Values.rbac.create }}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ .Values.platform.name }}-helm-deployment
-  labels:
-    {{- toYaml .Values.labels | nindent 4 }}
-  annotations:
-    {{- toYaml .Values.annotations | nindent 4 }}
+  name: {{ .Values.serviceAccount.name }}
 rules:
-  # Core API resources
   - apiGroups: [""]
-    resources:
-      - namespaces
-      - pods
-      - pods/log
-      - services
-      - serviceaccounts
-      - configmaps
-      - secrets
-      - persistentvolumeclaims
-      - persistentvolumes
+    resources: ["services", "pods", "configmaps"]
     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-
-  # Apps API resources (Deployments, StatefulSets, DaemonSets)
-  - apiGroups: ["apps"]
-    resources:
-      - deployments
-      - statefulsets
-      - daemonsets
-      - replicasets
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-
-  # Batch API resources (Jobs, CronJobs)
-  - apiGroups: ["batch"]
-    resources:
-      - jobs
-      - cronjobs
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-
-  # RBAC resources
-  - apiGroups: ["rbac.authorization.k8s.io"]
-    resources:
-      - roles
-      - rolebindings
-      - clusterroles
-      - clusterrolebindings
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-
-  # Networking resources
-  - apiGroups: ["networking.k8s.io"]
-    resources:
-      - networkpolicies
-      - ingresses
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-
-  # Storage resources
-  - apiGroups: ["storage.k8s.io"]
-    resources:
-      - storageclasses
-    verbs: ["get", "list", "watch"]
-
-  # Custom resources (if needed for your applications)
-  - apiGroups: ["apiextensions.k8s.io"]
-    resources:
-      - customresourcedefinitions
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-
-  # ArgoCD resources
-  - apiGroups: ["argoproj.io"]
-    resources:
-      - applications
-      - applicationsets
-      - repositories
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-
-  # Allow viewing cluster info
-  - apiGroups: [""]
-    resources:
-      - nodes
-    verbs: ["get", "list", "watch"]
-
-  # Non-resource URLs (for health checks, etc.)
-  - nonResourceURLs:
-      - /metrics
-      - /healthz
-      - /api
-    verbs: ["get"]
+{{- end }}
