@@ -1,0 +1,21 @@
+apiVersion: v2
+name: traefik
+description: A Helm chart for Traefik
+type: application
+version: 27.0.0
+appVersion: "3.0.0"
+keywords:
+  - traefik
+  - ingress
+  - reverse-proxy
+  - load-balancer
+home: https://traefik.io
+sources:
+  - https://github.com/traefik/traefik
+  - https://github.com/traefik/traefik-helm-chart
+maintainers:
+  - name: Traefik Labs
+    email: support@traefik.io
+icon: https://raw.githubusercontent.com/traefik/traefik/master/docs/content/assets/img/traefik-logo-dark.png
+annotations:
+  category: Networking
