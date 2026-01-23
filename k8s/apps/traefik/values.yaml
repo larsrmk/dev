@@ -1,0 +1,64 @@
+# Traefik als Ingress Controller mit Dashboard
+
+image:
+  name: traefik
+  tag: v3.0.0
+
+# Service konfigurieren
+service:
+  type: NodePort
+  ports:
+    web:
+      port: 80
+      nodePort: 30080
+    websecure:
+      port: 443
+      nodePort: 30443
+      tls:
+        enabled: true
+
+# Traefik API & Dashboard
+api:
+  dashboard: true
+  debug: false
+  insecure: false
+
+# Entrypoints
+entryPoints:
+  web:
+    address: ":80"
+  websecure:
+    address: ":443"
+
+# Ingress-Provider aktivieren
+providers:
+  kubernetesIngress:
+    enabled: true
+    ingressClass: traefik
+  kubernetesCRD:
+    enabled: true
+
+# Logs
+logs:
+  general:
+    level: INFO
+
+# Traefik selbst via Ingress exponieren (für Dashboard)
+ingressRoute:
+  dashboard:
+    enabled: true
+    entryPoints:
+      - websecure
+    rule: "Host(`traefik.local`)"
+    tls:
+      certResolver: letsencrypt
+    middlewares: []
+
+# Zertifikat-Resolver für selbstsignierte Certs
+certificatesResolvers:
+  letsencrypt:
+    acme:
+      email: admin@local
+      storage: /data/acme.json
+      httpChallenge:
+        entryPoint: web
