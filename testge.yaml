@@ -1,0 +1,53 @@
+opencost:
+  exporter:
+    image:
+      registry: registry.example.com
+      repository: myproj/opencost
+      tag: "1.116.0"
+      pullPolicy: IfNotPresent
+
+    # Collector statt Prometheus
+    collectorDataSource:
+      enabled: true
+      scrapeInterval: 30s
+      networkPort: 3001
+      retentionResolution10m: 36
+      retentionResolution1h: 49
+      retentionResolution1d: 15
+
+  # KRITISCH: Alle Prometheus-Varianten deaktivieren!
+  prometheus:
+    internal:
+      enabled: false              # ← Wichtigster Fix!
+    external:
+      enabled: false
+    amp:
+      enabled: false
+    thanos:
+      enabled: false
+
+  ui:
+    enabled: true
+    image:
+      registry: registry.example.com
+      repository: myproj/opencost-ui
+      tag: "1.116.0"
+      pullPolicy: IfNotPresent
+    
+    ingress:
+      enabled: true
+      ingressClassName: "nginx"
+      hosts:
+        - host: opencost.local
+          paths:
+            - /
+
+imagePullSecrets:
+  - name: regcred
+
+serviceAccount:
+  create: false
+  name: "opencost"
+
+rbac:
+  enabled: false
