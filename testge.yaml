@@ -1,53 +1,55 @@
-opencost:
-  exporter:
-    image:
-      registry: registry.example.com
-      repository: myproj/opencost
-      tag: "1.116.0"
-      pullPolicy: IfNotPresent
+# Replicas
+replicas: 1
 
-    # Collector statt Prometheus
-    collectorDataSource:
-      enabled: true
-      scrapeInterval: 30s
-      networkPort: 3001
-      retentionResolution10m: 36
-      retentionResolution1h: 49
-      retentionResolution1d: 15
+# Image Configuration - Von deiner privaten Registry
+image:
+  registry: my-private-registry.example.com  # Deine Registry URL
+  repository: grafana/grafana
+  tag: "11.4.0"
+  pullPolicy: IfNotPresent
+  # Falls du Pull Secrets brauchst (normalerweise nicht wenn Registry offen ist)
+  # pullSecrets:
+  #   - my-registry-secret
 
-  # KRITISCH: Alle Prometheus-Varianten deaktivieren!
-  prometheus:
-    internal:
-      enabled: false              # ← Wichtigster Fix!
-    external:
-      enabled: false
-    amp:
-      enabled: false
-    thanos:
-      enabled: false
+# Admin Credentials
+adminUser: admin
+adminPassword: "grafana"  # Ändere das in Produktion!
 
-  ui:
-    enabled: true
-    image:
-      registry: registry.example.com
-      repository: myproj/opencost-ui
-      tag: "1.116.0"
-      pullPolicy: IfNotPresent
-    
-    ingress:
-      enabled: true
-      ingressClassName: "nginx"
-      hosts:
-        - host: opencost.local
-          paths:
-            - /
+# Service Configuration
+service:
+  enabled: true
+  type: ClusterIP
+  port: 80
+  targetPort: 3000
 
-imagePullSecrets:
-  - name: regcred
-
-serviceAccount:
-  create: false
-  name: "opencost"
-
-rbac:
+# Persistence (deaktiviert für Test-Setup)
+persistence:
   enabled: false
+
+# RBAC
+rbac:
+  create: true
+
+# ServiceAccount
+serviceAccount:
+  create: true
+
+# Resource Limits
+resources:
+  limits:
+    cpu: 200m
+    memory: 256Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# Grafana Configuration
+grafana.ini:
+  paths:
+     /var/lib/grafana/
+    logs: /var/log/grafana
+    plugins: /var/lib/grafana/plugins
+  analytics:
+    check_for_updates: true
+  server:
+    root_url: "%(protocol)s://%(domain)s:%(http_port)s/"
