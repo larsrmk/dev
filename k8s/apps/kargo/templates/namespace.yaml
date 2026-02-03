@@ -1,0 +1,10 @@
+{{- if .Values.pipeline.enabled }}
+apiVersion: v1
+kind: Namespace
+meta
+  name: {{ .Values.pipeline.namespace }}
+  labels:
+    kargo.akuity.io/project: "true"
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/part-of: kargo
+{{- end }}
