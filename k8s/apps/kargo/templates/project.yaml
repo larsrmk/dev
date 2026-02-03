@@ -1,0 +1,7 @@
+{{- if .Values.pipeline.enabled }}
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Project
+meta
+  name: {{ .Values.pipeline.namespace }}
+spec: {}
+{{- end }}

@@ -1,0 +1,63 @@
+{{- if and .Values.pipeline.enabled .Values.pipeline.stages.integra.enabled }}
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+meta
+  name: integra
+  namespace: {{ .Values.pipeline.namespace }}
+  {{- if .Values.pipeline.stages.integra.color }}
+  annotations:
+    kargo.akuity.io/color: {{ .Values.pipeline.stages.integra.color }}
+  {{- end }}
+  labels:
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/part-of: kargo
+spec:
+  requestedFreight:
+  - origin:
+      kind: Warehouse
+      name: platform-apps
+    sources:
+      stages:
+      - test
+  
+  promotionTemplate:
+    spec:
+      vars:
+      - name: gitRepo
+        value: {{ .Values.pipeline.gitRepo.repoURL }}
+      - name: appsPath
+        value: {{ .Values.pipeline.appsPath }}
+      - name: targetBranch
+        value: {{ .Values.pipeline.stages.integra.targetBranch }}
+      
+      steps:
+      - uses: git-clone
+        config:
+          repoURL: ${{ vars.gitRepo }}
+          checkout:
+          - fromFreight: true
+            path: ./source
+          - branch: ${{ vars.targetBranch }}
+            create: true
+            path: ./out
+      
+      - uses: git-clear
+        config:
+          path: ./out
+      
+      - uses: copy
+        config:
+          inPath: ./source/${{ vars.appsPath }}
+          outPath: ./out/${{ vars.appsPath }}
+      
+      - uses: git-commit
+        config:
+          path: ./out
+          messageFromSteps:
+          - copy
+      
+      - uses: git-push
+        config:
+          path: ./out
+          targetBranch: ${{ vars.targetBranch }}
+{{- end }}

@@ -1,0 +1,41 @@
+# Kargo Platform Configuration
+kargo:
+  api:
+    enabled: true
+    service:
+      type: ClusterIP
+      port: 80
+  
+  controller:
+    enabled: true
+
+# Pipeline Configuration
+pipeline:
+  enabled: true
+  namespace: platform-pipeline
+  
+  gitRepo:
+    # Format: https://username:password@gitea.example.com/org/repo.git
+    # Sonderzeichen URL-encodieren: @ → %40, : → %3A, ! → %21, etc.
+    repoURL: https://dein-username:dein-password@gitea.example.com/your-org/your-repo.git
+    mainBranch: main
+  
+  # Überwacht NUR den apps/ Ordner
+  appsPath: apps
+  
+  # Stages Configuration
+  stages:
+    test:
+      enabled: true
+      targetBranch: stage/test
+      color: blue
+    
+    integra:
+      enabled: true
+      targetBranch: stage/integra
+      color: yellow
+    
+    prod:
+      enabled: true
+      targetBranch: stage/prod
+      color: green

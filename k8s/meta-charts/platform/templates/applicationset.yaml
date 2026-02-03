@@ -1,0 +1,60 @@
+{{- range $stage := list "test" "integra" "prod" }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+meta
+  name: platform-{{ $stage }}
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  
+  generators:
+  - git:
+      repoURL: https://gitea.example.com/your-org/your-repo.git
+      revision: stage/{{ $stage }}
+      
+      directories:
+      # Nur Apps die von platform managed werden
+      - path: apps/gitea
+      - path: apps/argocd
+      # Weitere platform Apps hier...
+  
+  template:
+    meta
+      name: '{{`{{ .path.basename }}`}}-{{ $stage }}'
+      annotations:
+        kargo.akuity.io/authorized-stage: platform-pipeline:{{ $stage }}
+      finalizers:
+      - resources-finalizer.argocd.argoproj.io
+    
+    spec:
+      project: default
+      
+      source:
+        repoURL: https://gitea.example.com/your-org/your-repo.git
+        targetRevision: stage/{{ $stage }}
+        path: '{{`{{ .path.path }}`}}'
+        
+        helm:
+          valueFiles:
+          - values.yaml
+          releaseName: '{{`{{ .path.basename }}`}}'
+      
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: '{{`{{ .path.basename }}`}}-{{ $stage }}'
+      
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+        - CreateNamespace=true
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m
+{{- end }}

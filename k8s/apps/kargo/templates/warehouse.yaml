@@ -1,0 +1,17 @@
+{{- if .Values.pipeline.enabled }}
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Warehouse
+meta
+  name: platform-apps
+  namespace: {{ .Values.pipeline.namespace }}
+  labels:
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+    app.kubernetes.io/part-of: kargo
+spec:
+  subscriptions:
+  - git:
+      repoURL: {{ .Values.pipeline.gitRepo.repoURL }}
+      branch: {{ .Values.pipeline.gitRepo.mainBranch }}
+      includePaths:
+      - {{ .Values.pipeline.appsPath }}/**
+{{- end }}
