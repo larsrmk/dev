@@ -1,26 +1,11 @@
+{{- if and .Values.pipeline.enabled .Values.pipeline.stages.test.enabled }}
 apiVersion: v1
 kind: ConfigMap
 meta
   name: stage-overrides-test
-  namespace: platform-pipeline
+  namespace: {{ .Values.pipeline.namespace }}
   labels:
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
     kargo.stage: test
  {}
----
-apiVersion: v1
-kind: ConfigMap
-meta
-  name: stage-overrides-integra
-  namespace: platform-pipeline
-  labels:
-    kargo.stage: integra
- {}
----
-apiVersion: v1
-kind: ConfigMap
-meta
-  name: stage-overrides-prod
-  namespace: platform-pipeline
-  labels:
-    kargo.stage: prod
- {}
+{{- end }}
