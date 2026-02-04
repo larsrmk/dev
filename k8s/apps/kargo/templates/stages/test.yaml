@@ -23,20 +23,20 @@ spec:
     spec:
       vars:
       - name: gitRepo
-        value: {{ .Values.pipeline.gitRepo.repoURL }}
+        value: {{ .Values.pipeline.gitRepo.repoURL | quote }}
       - name: appsPath
-        value: {{ .Values.pipeline.appsPath }}
+        value: {{ .Values.pipeline.appsPath | quote }}
       - name: targetBranch
-        value: {{ .Values.pipeline.stages.test.targetBranch }}
+        value: {{ .Values.pipeline.stages.test.targetBranch | quote }}
       
       steps:
       - uses: git-clone
         config:
-          repoURL: ${{ vars.gitRepo }}
+          repoURL: {{ `${{ vars.gitRepo }}` }}
           checkout:
           - fromFreight: true
             path: ./source
-          - branch: ${{ vars.targetBranch }}
+          - branch: {{ `${{ vars.targetBranch }}` }}
             create: true
             path: ./out
       
@@ -46,8 +46,8 @@ spec:
       
       - uses: copy
         config:
-          inPath: ./source/${{ vars.appsPath }}
-          outPath: ./out/${{ vars.appsPath }}
+          inPath: {{ `./source/${{ vars.appsPath }}` }}
+          outPath: {{ `./out/${{ vars.appsPath }}` }}
       
       - uses: git-commit
         config:
@@ -58,5 +58,5 @@ spec:
       - uses: git-push
         config:
           path: ./out
-          targetBranch: ${{ vars.targetBranch }}
+          targetBranch: {{ `${{ vars.targetBranch }}` }}
 {{- end }}
