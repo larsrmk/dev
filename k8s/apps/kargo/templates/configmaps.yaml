@@ -1,24 +1,26 @@
-{{- if .Values.pipeline.enabled }}
-{{- range $stageName, $config := .Values.pipeline.stages }}
-{{- if $config.enabled }}
+apiVersion: v1
+kind: ConfigMap
+meta
+  name: stage-overrides-test
+  namespace: platform-pipeline
+  labels:
+    kargo.stage: test
+ {}
 ---
 apiVersion: v1
 kind: ConfigMap
 meta
-  name: stage-overrides-{{ $stageName }}
-  namespace: {{ $.Values.pipeline.namespace }}
+  name: stage-overrides-integra
+  namespace: platform-pipeline
   labels:
-    app.kubernetes.io/managed-by: {{ $.Release.Service }}
-    app.kubernetes.io/part-of: kargo
-    kargo.stage: {{ $stageName }}
+    kargo.stage: integra
  {}
-  # Leer bei Erstellung
-  # Bei Bedarf hinzufügen via kubectl edit:
-  # grafana.yaml: |
-  #   replicaCount: 2
-  #   resources:
-  #     limits:
-  #       cpu: 500m
-{{- end }}
-{{- end }}
-{{- end }}
+---
+apiVersion: v1
+kind: ConfigMap
+meta
+  name: stage-overrides-prod
+  namespace: platform-pipeline
+  labels:
+    kargo.stage: prod
+ {}

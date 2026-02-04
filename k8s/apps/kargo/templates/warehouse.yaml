@@ -1,17 +1,12 @@
-{{- if .Values.pipeline.enabled }}
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Warehouse
 meta
   name: platform-apps
-  namespace: {{ .Values.pipeline.namespace }}
-  labels:
-    app.kubernetes.io/managed-by: {{ .Release.Service }}
-    app.kubernetes.io/part-of: kargo
+  namespace: platform-pipeline
 spec:
   subscriptions:
   - git:
-      repoURL: {{ .Values.pipeline.gitRepo.repoURL }}
-      branch: {{ .Values.pipeline.gitRepo.mainBranch }}
+      repoURL: https://username:password@gitea.example.com/org/repo.git  # ← ÄNDERN
+      branch: main
       includePaths:
-      - {{ .Values.pipeline.appsPath }}/**
-{{- end }}
+      - apps/**
