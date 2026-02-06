@@ -1,0 +1,58 @@
+apiVersion: kargo.akuity.io/v1alpha1
+kind: PromotionTask
+meta
+  name: test-branch-from-main
+  namespace: kargo-system  # Dein Kargo-Project-NS anpassen
+spec:
+  vars:
+  - name: repoURL
+    value: "http://gadmin:password123@10.96.1:3000/gadmin/k8s-gitops-repo.git"  # Deine Gitea-URL [cite:52]
+  - name: sourceBranch
+    value: "main"
+  - name: targetBranch
+    value: "test"
+  steps:
+  # 1. Clone main (Source) & neuen test (Target, orphan)
+  - name: clone-source-target
+    uses: git-clone
+    config:
+      repoURL: ${{ vars.repoURL }}
+      checkout:
+      - branch: ${{ vars.sourceBranch }}
+        path: "./src"
+      - branch: ${{ vars.targetBranch }}
+        create: true
+        path: "./out"
+  # 2. Target leeren (orphan ist leer)
+  - uses: git-clear
+    config:
+      path: "./out"
+  # 3. main-Inhalt nach test kopieren
+  - uses: copy
+    config:
+      inPath: "./src"
+      outPath: "./out"
+  # 4. Freight-Änderungen einbinden (z. B. GitCommit aus Warehouse)
+  - uses: git-write
+    config:
+      path: "./out"  # Oder spezifischer Pfad, z. B. "./out/kustomization.yaml"
+       |
+        # Beispiel: Freight GitCommit-Ref mergen oder Image updaten
+        # Nutze Vars wie ${{ index .Freight.GitCommits 0 }}
+        message: "Integrate Freight ${{ freight.id }} changes"
+  # 5. Commit & Push auf test
+  - uses: git-commit
+    config:
+      path: "./out"
+      message: |
+        Promote Freight ${{ freight.id }} from ${{ vars.sourceBranch }}
+        to ${{ vars.targetBranch }}
+        Session: ${{ session.startTimestamp }}
+      author:
+        name: "kargo-bot"
+        email: "kargo@homelab.local"
+  # Optional: git-push, falls nicht auto
+  - uses: git-push
+    config:
+      repoURL: ${{ vars.repoURL }}
+      branch: ${{ vars.targetBranch }}
