@@ -1,0 +1,24 @@
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+meta
+  name: test
+  namespace: kargo-system
+spec:
+  subscriptions:
+  - warehouse: dein-warehouse  # Quelle für Freight (z. B. main-Commits)
+  promotionTemplate:
+    spec:
+      vars:
+      - name: repoURL
+        value: "http://gadmin:password123@10.96.1:3000/gadmin/k8s-gitops-repo.git"
+      steps:
+      - task:
+          name: test-branch-from-main
+          vars:  # Überschreibbar
+          - name: targetBranch
+            value: "test"
+  # Verifications (optional, Prod-Standard)
+  verificationTemplates:
+  - healthcheck:
+      healthyConditions:
+      - type: Available
