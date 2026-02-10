@@ -1,0 +1,71 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+meta
+  name: test-stage-verification
+  namespace: kargo-system  # Dein Kargo-Project-Namespace
+spec:
+  args:
+  - name: app-namespace
+    value: "test-ns"  # Namespace deiner Test-App (anpassen!)
+  - name: app-service-url
+    value: "http://deine-app.test.svc.cluster.local:8080"  # Service-URL
+  - name: expected-pods
+    value: "2"  # Erwartete Pod-Anzahl
+  metrics:
+  # Metric 1: ArgoCD App Healthy (automatisch)
+  - name: argocd-health
+    interval: 30s
+    successCondition: result == "Healthy"
+    failureCondition: result == "Degraded"
+    provider:
+      kubernetes:
+        namespace: "{{args.app-namespace}}"
+        resource:
+          name: "deine-app-argocd"  # Dein ArgoCD App-Name
+          kind: Application
+  
+  # Metric 2: HTTP Health Endpoint
+  - name: http-health
+    interval: 30s
+    count: 5
+    successCondition: result == "healthy"
+    failureCondition: result == "unhealthy"
+    provider:
+      web:
+        url: "{{args.app-service-url}}/health"
+        timeoutSeconds: 10
+        insecureSkipTLSVerify: true
+  
+  # Metric 3: Pods Running & Ready
+  - name: pods-ready
+    interval: 60s
+    successCondition: 'length(result[?(@.status.phase=="Running")]) >= {{args.expected-pods}}'
+    provider:
+      kubernetes:
+        namespace: "{{args.app-namespace}}"
+        resources:
+        - pods
+  
+  # Metric 4: Integration Test (curl API-Endpoints)
+  - name: integration-test
+    interval: 60s
+    successCondition: result == "Pass"
+    provider:
+      job:
+        spec:
+          template:
+            serviceAccountName: kargo-test-sa  # Optional RBAC
+            containers:
+            - name: integration-tester
+              image: curlimages/curl:alpine
+              command:
+              - /bin/sh
+              - -c
+              - |
+                echo "Testing commit from Freight..."
+                curl -f "{{args.app-service-url}}/api/v1/status" || exit 1
+                curl -f "{{args.app-service-url}}/db/health" || exit 1
+                echo "✅ All integration tests passed"
+            restartPolicy: Never
+          backoffLimit: 2
+          timeoutSeconds: 300
