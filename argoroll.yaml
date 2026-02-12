@@ -1,44 +1,55 @@
-# Subchart: Argo Rollouts
+# ArgoCD Server-Config (bleibt wie gehabt)
+server:
+  # ... deine bestehende Config
+
+# ConfigMap für ArgoCD (WICHTIG für Health Checks)
+configs:
+  cm:
+    # Custom Health Check für Argo Rollouts
+    resource.customizations.health.argoproj.io_Rollout: |
+      hs = {}
+      if obj.status ~= nil then
+        if obj.status.phase ~= nil then
+          if obj.status.phase == "Healthy" then
+            hs.status = "Healthy"
+            hs.message = obj.status.message
+          elseif obj.status.phase == "Paused" then
+            hs.status = "Suspended"
+            hs.message = "Rollout is paused"
+          elseif obj.status.phase == "Progressing" then
+            hs.status = "Progressing"
+            hs.message = "Rollout is progressing"
+          elseif obj.status.phase == "Degraded" then
+            hs.status = "Degraded"
+            hs.message = obj.status.message
+          else
+            hs.status = "Unknown"
+            hs.message = "Rollout phase: " .. obj.status.phase
+          end
+        else
+          hs.status = "Progressing"
+          hs.message = "Waiting for rollout to start"
+        end
+      else
+        hs.status = "Progressing"
+        hs.message = "Waiting for rollout status"
+      end
+      return hs
+
+# Subchart bleibt wie gehabt
 argo-rollouts:
-  # CRDs mitinstallieren
   installCRDs: true
   keepCRDs: true
-  
-  # Cluster-weite Installation (empfohlen)
   clusterInstall: true
   createClusterAggregateRoles: true
 
   controller:
     replicas: 1
-    
-    # Optional: Metrics für Prometheus
     metrics:
       enabled: true
-      serviceMonitor:
-        enabled: false  # auf true setzen, wenn du Prometheus Operator nutzt
 
-  # Dashboard aktivieren
   dashboard:
     enabled: true
-    
     service:
       type: ClusterIP
       port: 3100
-      targetPort: 3100
-      
-    # Optional: Ingress, falls du das Dashboard dauerhaft exposen willst
-    ingress:
-      enabled: false
-      # annotations: {}
-      # hosts:
-      #   - argorollouts.example.com
-      # tls: []
-    
-    # Optional: Ressourcen-Limits
-    resources: {}
-    #  limits:
-    #    cpu: 100m
-    #    memory: 128Mi
-    #  requests:
-    #    cpu: 50m
-    #    memory: 64Mi
