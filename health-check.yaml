@@ -1,0 +1,25 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+meta
+  name: test-health-check
+  namespace: <DEIN-PROJECT-NAMESPACE>  # ⚠️ Ersetze mit deinem Kargo Project Namespace
+spec:
+  metrics:
+    - name: basic-health-check
+      provider:
+        job:
+          spec:
+            backoffLimit: 1
+            template:
+              spec:
+                containers:
+                  - name: health-check
+                    image: alpine:latest
+                    command:
+                      - sh
+                      - -c
+                      - |
+                        echo "Starting health check..."
+                        sleep 10
+                        echo "Health check passed!"
+                restartPolicy: Never
