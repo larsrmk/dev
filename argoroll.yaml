@@ -1,0 +1,44 @@
+# Subchart: Argo Rollouts
+argo-rollouts:
+  # CRDs mitinstallieren
+  installCRDs: true
+  keepCRDs: true
+  
+  # Cluster-weite Installation (empfohlen)
+  clusterInstall: true
+  createClusterAggregateRoles: true
+
+  controller:
+    replicas: 1
+    
+    # Optional: Metrics für Prometheus
+    metrics:
+      enabled: true
+      serviceMonitor:
+        enabled: false  # auf true setzen, wenn du Prometheus Operator nutzt
+
+  # Dashboard aktivieren
+  dashboard:
+    enabled: true
+    
+    service:
+      type: ClusterIP
+      port: 3100
+      targetPort: 3100
+      
+    # Optional: Ingress, falls du das Dashboard dauerhaft exposen willst
+    ingress:
+      enabled: false
+      # annotations: {}
+      # hosts:
+      #   - argorollouts.example.com
+      # tls: []
+    
+    # Optional: Ressourcen-Limits
+    resources: {}
+    #  limits:
+    #    cpu: 100m
+    #    memory: 128Mi
+    #  requests:
+    #    cpu: 50m
+    #    memory: 64Mi
