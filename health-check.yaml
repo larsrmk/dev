@@ -1,25 +1,44 @@
 apiVersion: argoproj.io/v1alpha1
 kind: AnalysisTemplate
 meta
-  name: test-health-check
-  namespace: <DEIN-PROJECT-NAMESPACE>  # ⚠️ Ersetze mit deinem Kargo Project Namespace
+  name: universal-verification
+  namespace: <DEIN-KARGO-PROJECT-NAMESPACE>
 spec:
+  # Argumente die Kargo automatisch übergeben kann
+  args:
+    - name: app-namespace
+    - name: app-name
+  
   metrics:
-    - name: basic-health-check
+    - name: argocd-health-check
       provider:
         job:
           spec:
-            backoffLimit: 1
+            backoffLimit: 2
             template:
               spec:
+                serviceAccountName: kargo-project
                 containers:
-                  - name: health-check
-                    image: alpine:latest
+                  - name: verify
+                    image: bitnami/kubectl:latest
+                    env:
+                      # Nutze die übergebenen Argumente
+                      - name: APP_NAMESPACE
+                        value: "{{args.app-namespace}}"
+                      - name: APP_NAME
+                        value: "{{args.app-name}}"
                     command:
                       - sh
                       - -c
                       - |
-                        echo "Starting health check..."
-                        sleep 10
-                        echo "Health check passed!"
+                        echo "Checking app: $APP_NAME in namespace: $APP_NAMESPACE"
+                        
+                        # Warte bis alle Pods im Namespace ready sind
+                        kubectl wait --for=condition=ready pod \
+                          --all \
+                          -n $APP_NAMESPACE \
+                          --timeout=300s
+                        
+                        echo "All pods in $APP_NAMESPACE are ready!"
+                        exit 0
                 restartPolicy: Never
