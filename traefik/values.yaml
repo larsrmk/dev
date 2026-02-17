@@ -1,0 +1,42 @@
+traefik:
+  service:
+    type: NodePort
+  
+  ports:
+    web:
+      port: 8000
+      expose:
+        default: true
+      exposedPort: 80
+      protocol: TCP
+    
+    websecure:
+      port: 8443
+      expose:
+        default: true
+      exposedPort: 443
+      protocol: TCP
+    
+    argocd:
+      port: 8001
+      expose:
+        default: true
+      exposedPort: 8001
+      nodePort: 32001
+      protocol: TCP
+    
+    kargo:
+      port: 8002
+      expose:
+        default: true
+      exposedPort: 8002
+      nodePort: 32002
+      protocol: TCP
+    
+    gitea:
+      port: 8003
+      expose:
+        default: true
+      exposedPort: 8003
+      nodePort: 32003
+      protocol: TCP
