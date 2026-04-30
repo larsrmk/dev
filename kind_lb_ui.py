@@ -9,19 +9,6 @@ import webbrowser
 import os
 
 # =========================
-# Windows: Taskbar-Icon Fix
-# =========================
-# Zwingt Windows dazu, dieses Skript als eigenständige App zu behandeln.
-# Dadurch wird das eigene .ico auch unten in der Taskleiste angezeigt!
-if os.name == "nt":
-    try:
-        import ctypes
-        myappid = 'k8s.loadbalancer.ui.version1' # Beliebige, aber eindeutige ID
-        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
-    except Exception:
-        pass
-
-# =========================
 # Layout / Design
 # =========================
 WINDOW_W = 1280
@@ -145,7 +132,7 @@ class App(tk.Tk):
         self.geometry(f"{WINDOW_W}x{WINDOW_H}")
         self.configure(bg=COLOR_BG)
 
-        # Icon laden (muss im selben Ordner liegen wie das Skript)
+        # Icon oben links im Fenster
         icon_path = Path(__file__).parent / "icons8-python-48.ico"
         if icon_path.exists():
             self.iconbitmap(str(icon_path))
@@ -221,7 +208,8 @@ class App(tk.Tk):
     # ---------- Controls ----------
     def _build_controls(self):
         self.controls = tk.Frame(self, bg=COLOR_BG)
-        self.controls.pack(pady=10)
+        # pady=25 sorgt für den exakt gleichen Abstand nach oben (zum Header) und unten (zur Liste/zu den Karten)
+        self.controls.pack(pady=25)
 
         row1 = tk.Frame(self.controls, bg=COLOR_BG)
         row1.pack()
@@ -234,12 +222,12 @@ class App(tk.Tk):
         self.btn_export.pack_forget()
 
         self.btn_open_all = self._button(self.controls, "Alle UIs öffnen", self.open_all)
-        self.btn_open_all.pack(pady=(12, 0))
+        self.btn_open_all.pack(pady=(15, 0))
         self.btn_open_all.pack_forget()
 
         # ---------- Info & Search Row ----------
         self.info_row = tk.Frame(self.controls, bg=COLOR_BG)
-        self.info_row.pack(pady=(12, 0))
+        self.info_row.pack(pady=(15, 0))
         self.info_row.pack_forget()
 
         # Suchfeld (Abgerundet via Canvas, mittig)
@@ -356,13 +344,15 @@ class App(tk.Tk):
         content_height = bbox[3] - bbox[1]
         canvas_height = self.canvas.winfo_height()
 
+        # Scrollen ist nur aktiv, wenn der Inhalt größer ist als das Fenster
         self.scroll_enabled = content_height > canvas_height
 
         if not self.scroll_enabled:
             self.canvas.configure(scrollregion=(0, 0, 0, canvas_height))
             self.canvas.yview_moveto(0)
         else:
-            self.canvas.configure(scrollregion=bbox)
+            # +20 Puffer ganz unten, damit es schöner abschließt beim Scrollen
+            self.canvas.configure(scrollregion=(bbox[0], bbox[1], bbox[2], bbox[3] + 20))
 
     def _on_mousewheel(self, event):
         if not self.scroll_enabled:
@@ -401,9 +391,9 @@ class App(tk.Tk):
         self.generated = True
         self.btn_generate.itemconfigure("btn_text", text="Erneut generieren")
         self.btn_export.pack(side="left", padx=8)
-        self.btn_open_all.pack(pady=(12, 0))
+        self.btn_open_all.pack(pady=(15, 0))
         
-        self.info_row.pack(pady=(12, 10))
+        self.info_row.pack(pady=(15, 0))
         self.update_placeholder()
         
         self.render_cards(self.get_filtered_services())
