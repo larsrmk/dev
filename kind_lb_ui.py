@@ -9,18 +9,6 @@ import webbrowser
 import os
 
 # =========================
-# Windows: Console verstecken
-# =========================
-if os.name == "nt":
-    try:
-        import ctypes
-        ctypes.windll.user32.ShowWindow(
-            ctypes.windll.kernel32.GetConsoleWindow(), 0
-        )
-    except Exception:
-        pass
-
-# =========================
 # Layout / Design
 # =========================
 WINDOW_W = 1280
@@ -49,7 +37,14 @@ COLOR_BTN_HOVER = "#dcdcdc"
 # Backend
 # =========================
 def run(cmd):
-    r = subprocess.run(cmd, capture_output=True, text=True)
+    # Wichtig unter Windows bei .pyw: CREATE_NO_WINDOW verhindert,
+    # dass bei jedem subprocess-Aufruf kurz ein cmd-Fenster aufblitzt.
+    startupinfo = None
+    if os.name == "nt":
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+
+    r = subprocess.run(cmd, capture_output=True, text=True, startupinfo=startupinfo)
     if r.returncode != 0:
         raise RuntimeError(r.stderr)
     return r.stdout
@@ -136,6 +131,11 @@ class App(tk.Tk):
         self.title("K8s Loadbalancer UIs")
         self.geometry(f"{WINDOW_W}x{WINDOW_H}")
         self.configure(bg=COLOR_BG)
+
+        # Icon laden (muss im selben Ordner liegen wie das Skript)
+        icon_path = Path(__file__).parent / "icons8-python-48.ico"
+        if icon_path.exists():
+            self.iconbitmap(str(icon_path))
 
         self.services = []
         self.new_service_names = set()
@@ -273,7 +273,6 @@ class App(tk.Tk):
     def update_placeholder(self):
         self.placeholder_text = f"Services gefunden: {len(self.services)}"
         current = self.search_var.get()
-        # Nur aktualisieren, wenn Feld leer ist oder der alte Platzhalter drinsteht
         if not current or current.startswith("Services gefunden:"):
             self.search_var.set(self.placeholder_text)
             self.search_entry.config(fg="grey")
