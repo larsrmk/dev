@@ -138,9 +138,10 @@ class App(tk.Tk):
         self.configure(bg=COLOR_BG)
 
         self.services = []
+        self.new_service_names = set()  # Speichert die Namen der neu erkannten Services
         self.generated = False
         self.scroll_enabled = False
-        self.placeholder_text = "nach Servicenamen suchen..."
+        self.placeholder_text = "Nach Service suchen..."
 
         self._build_header()
         self._build_controls()
@@ -148,11 +149,9 @@ class App(tk.Tk):
 
         self.load_services()
 
-        # Globales Klick-Event für das Entziehen des Fokus
         self.bind_all("<Button-1>", self._remove_focus, add="+")
 
     def _remove_focus(self, event):
-        # Fokus wegnehmen, wenn nicht ins Eingabefeld oder auf das X geklickt wird
         if hasattr(self, "search_entry"):
             if event.widget not in (self.search_entry, self.search_clear_lbl):
                 self.focus_set()
@@ -200,7 +199,8 @@ class App(tk.Tk):
             highlightthickness=0
         )
         bg_id = rounded_rect(c, 0, 0, width, height, radius, COLOR_BTN)
-        c.create_text(width // 2, height // 2, text=text, font=("Segoe UI", 10))
+        # Text bekommt einen Tag ("btn_text"), um ihn später einfach ändern zu können
+        c.create_text(width // 2, height // 2, text=text, font=("Segoe UI", 10), tags="btn_text")
         c.bind("<Enter>", lambda e: c.itemconfigure(bg_id, fill=COLOR_BTN_HOVER))
         c.bind("<Leave>", lambda e: c.itemconfigure(bg_id, fill=COLOR_BTN))
         c.bind("<Button-1>", lambda e: command())
@@ -214,7 +214,7 @@ class App(tk.Tk):
         row1 = tk.Frame(self.controls, bg=COLOR_BG)
         row1.pack()
 
-        self.btn_generate = self._button(row1, "Generieren", self.on_generate)
+        self.btn_generate = self._button(row1, "Generieren", self.handle_main_btn)
         self.btn_generate.pack(side="left", padx=8)
 
         self.btn_export = self._button(row1, "Als .txt exportieren", self.export_txt)
@@ -251,12 +251,10 @@ class App(tk.Tk):
         )
         self.search_canvas.pack(side="left")
 
-        # Optischer Rahmen + Innere Fläche zeichnen
         rounded_rect(self.search_canvas, 0, 0, search_width, search_height, 18, "#cccccc")
         rounded_rect(self.search_canvas, 1, 1, search_width-2, search_height-2, 17, "white")
 
         self.search_var = tk.StringVar()
-        
         self.search_entry = tk.Entry(
             self.search_canvas, 
             textvariable=self.search_var, 
@@ -268,7 +266,6 @@ class App(tk.Tk):
         )
         self.search_canvas.create_window(15, search_height//2, anchor="w", window=self.search_entry, width=search_width-45)
 
-        # Clear ("X") Button (direkt auf Canvas positioniert)
         self.search_clear_lbl = tk.Label(
             self.search_canvas, 
             text="✕", 
@@ -278,16 +275,13 @@ class App(tk.Tk):
             cursor="hand2"
         )
         
-        # Events für das Suchfeld
         self.search_entry.bind("<FocusIn>", self._search_focus_in)
         self.search_entry.bind("<FocusOut>", self._search_focus_out)
         self.search_clear_lbl.bind("<Button-1>", self._clear_search)
         self.search_var.trace_add("write", self.on_search_change)
 
-        # Initiale Setzung des Platzhalters
         self.search_var.set(self.placeholder_text)
 
-    # --- Platzhalter und Fokus Logik ---
     def _search_focus_in(self, event):
         if self.search_var.get() == self.placeholder_text:
             self.search_var.set("")
@@ -304,7 +298,6 @@ class App(tk.Tk):
 
     def on_search_change(self, *args):
         val = self.search_var.get()
-        # Steuerung des "X"-Buttons (nur wenn Text da ist und es nicht der Platzhalter ist)
         if val and val != self.placeholder_text:
             self.search_clear_lbl.place(x=235, y=18, anchor="center")
         else:
@@ -322,7 +315,6 @@ class App(tk.Tk):
         query = self.search_var.get()
         if query == self.placeholder_text or not query.strip():
             return self.services
-        
         query = query.lower()
         return [s for s in self.services if query in s['service'].lower()]
 
@@ -379,23 +371,58 @@ class App(tk.Tk):
     # ---------- Logic ----------
     def load_services(self):
         self.services = resolve_services()
+        self.new_service_names = set()
         self.generated = False
         self.btn_export.pack_forget()
         self.btn_open_all.pack_forget()
         self.info_row.pack_forget()
+        self.btn_generate.itemconfigure("btn_text", text="Generieren")
         self.render_list()
+
+    def handle_main_btn(self):
+        if not self.generated:
+            self.on_generate()
+        else:
+            self.on_regenerate()
 
     def on_generate(self):
         self.generated = True
+        self.btn_generate.itemconfigure("btn_text", text="Erneut generieren")
         self.btn_export.pack(side="left", padx=8)
         self.btn_open_all.pack(pady=(12, 0))
         
-        # Suchfeld & Zähler anzeigen
         self.info_row.pack(pady=(12, 10))
         filtered = self.get_filtered_services()
         self.service_count.config(text=f"Services: {len(filtered)}")
         
         self.render_cards(filtered)
+
+    def on_regenerate(self):
+        # 1. Speichere alte Namen
+        old_names = {s['service'] for s in self.services}
+        
+        # 2. Lade neu
+        new_fetched = resolve_services()
+        
+        # 3. Filtere neue vs. alte Services
+        new_services = [s for s in new_fetched if s['service'] not in old_names]
+        existing_services = [s for s in new_fetched if s['service'] in old_names]
+        
+        # 4. Speichere neue Namen für Markierung und sortiere sie nach oben
+        self.new_service_names = {s['service'] for s in new_services}
+        self.services = new_services + existing_services
+        
+        # 5. UI Status auf Listen-Ansicht zurücksetzen
+        self.generated = False
+        self.search_var.set(self.placeholder_text)
+        self.search_entry.config(fg="grey")
+        
+        self.btn_generate.itemconfigure("btn_text", text="Generieren")
+        self.btn_export.pack_forget()
+        self.btn_open_all.pack_forget()
+        self.info_row.pack_forget()
+        
+        self.render_list()
 
     # ---------- Views ----------
     def clear(self):
@@ -424,7 +451,16 @@ class App(tk.Tk):
                 16,
                 COLOR_CARD
             )
-            row.create_text(24, 26, anchor="w",
+            
+            # Ist das ein neu gefundener Service?
+            is_new = s["service"] in self.new_service_names
+            
+            if is_new:
+                # Grüner Punkt als Indikator
+                row.create_oval(14, 22, 22, 30, fill="#28a745", outline="")
+            
+            # Der Text ist bei x=32 festgeschrieben, unabhängig davon ob ein Punkt da ist
+            row.create_text(32, 26, anchor="w",
                             text=s["service"], font=("Segoe UI", 12))
             row.pack(padx=SIDE_PADDING, pady=6)
         self._recalc_scroll()
@@ -449,7 +485,6 @@ class App(tk.Tk):
             )
             rounded_rect(card, 0, 0, CARD_W, CARD_H, 18, COLOR_CARD)
 
-            # Pfeil hübscher machen
             port_text = s['port'].replace("->", " → ")
 
             y = 20
@@ -503,7 +538,6 @@ class App(tk.Tk):
         
         filtered = self.get_filtered_services()
         for s in filtered:
-            # Auch hier für die TXT-Datei den schöneren Pfeil nutzen
             port_text = s['port'].replace("->", " → ")
             lines += [
                 f"Service: {s['service']}",
