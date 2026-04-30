@@ -216,15 +216,47 @@ class App(tk.Tk):
         self.btn_open_all.pack(pady=(12, 0))
         self.btn_open_all.pack_forget()
 
+        # ---------- Info & Search Row ----------
+        self.info_row = tk.Frame(self.controls, bg=COLOR_BG)
+        self.info_row.pack(pady=(12, 0))
+        self.info_row.pack_forget()
+
         self.service_count = tk.Label(
-            self.controls,
+            self.info_row,
             text="",
             bg=COLOR_BG,
             fg="#333",
             font=("Segoe UI", 12, "bold")
         )
-        self.service_count.pack(pady=(4, 0))
-        self.service_count.pack_forget()
+        self.service_count.pack(side="left", padx=(0, 20))
+
+        # Suchfeld Frame
+        self.search_var = tk.StringVar()
+        self.search_var.trace_add("write", self.on_search_change)
+        
+        self.search_frame = tk.Frame(self.info_row, bg="white", highlightbackground="#ccc", highlightthickness=1)
+        self.search_frame.pack(side="left")
+
+        self.search_entry = tk.Entry(
+            self.search_frame, 
+            textvariable=self.search_var, 
+            bd=0, 
+            font=("Segoe UI", 11), 
+            width=25,
+            bg="white"
+        )
+        self.search_entry.pack(side="left", padx=(8, 2), pady=4)
+
+        # Clear ("X") Button (standardmäßig versteckt)
+        self.search_clear_lbl = tk.Label(
+            self.search_frame, 
+            text="✕", 
+            bg="white", 
+            fg="#999", 
+            font=("Segoe UI", 10, "bold"), 
+            cursor="hand2"
+        )
+        self.search_clear_lbl.bind("<Button-1>", lambda e: self.search_var.set(""))
 
     # ---------- Content ----------
     def _build_content(self):
@@ -281,25 +313,54 @@ class App(tk.Tk):
         self.generated = False
         self.btn_export.pack_forget()
         self.btn_open_all.pack_forget()
-        self.service_count.pack_forget()
+        self.info_row.pack_forget()
         self.render_list()
+
+    def get_filtered_services(self):
+        query = self.search_var.get().lower()
+        if not query:
+            return self.services
+        return [s for s in self.services if query in s['service'].lower()]
+
+    def on_search_change(self, *args):
+        # Steuerung des "X"-Buttons
+        if self.search_var.get():
+            self.search_clear_lbl.pack(side="right", padx=(2, 8))
+        else:
+            self.search_clear_lbl.pack_forget()
+            
+        # UI aktualisieren
+        filtered = self.get_filtered_services()
+        self.service_count.config(text=f"Services: {len(filtered)}")
+        
+        if self.generated:
+            self.render_cards(filtered)
+        else:
+            self.render_list(filtered)
 
     def on_generate(self):
         self.generated = True
         self.btn_export.pack(side="left", padx=8)
-        self.btn_open_all.pack(pady=(12, 25))
-        self.service_count.config(text=f"Services: {len(self.services)}")
-        self.service_count.pack()
-        self.render_cards()
+        self.btn_open_all.pack(pady=(12, 0))
+        
+        # Suchfeld & Zähler anzeigen
+        self.info_row.pack(pady=(12, 10))
+        filtered = self.get_filtered_services()
+        self.service_count.config(text=f"Services: {len(filtered)}")
+        
+        self.render_cards(filtered)
 
     # ---------- Views ----------
     def clear(self):
         for w in self.content.winfo_children():
             w.destroy()
 
-    def render_list(self):
+    def render_list(self, services_to_render=None):
         self.clear()
-        for s in self.services:
+        if services_to_render is None:
+            services_to_render = self.services
+            
+        for s in services_to_render:
             row = tk.Canvas(
                 self.content,
                 width=WINDOW_W - SIDE_PADDING * 2,
@@ -319,13 +380,17 @@ class App(tk.Tk):
             row.create_text(24, 26, anchor="w",
                             text=s["service"], font=("Segoe UI", 12))
             row.pack(padx=SIDE_PADDING, pady=6)
+        self._recalc_scroll()
 
-    def render_cards(self):
+    def render_cards(self, services_to_render=None):
         self.clear()
+        if services_to_render is None:
+            services_to_render = self.services
+            
         cards_area = tk.Frame(self.content, bg=COLOR_BG)
         cards_area.pack(anchor="center", pady=12)
 
-        for i, s in enumerate(self.services):
+        for i, s in enumerate(services_to_render):
             r, c = divmod(i, CARDS_PER_ROW)
 
             card = tk.Canvas(
@@ -367,7 +432,8 @@ class App(tk.Tk):
 
     # ---------- Actions ----------
     def open_all(self):
-        for s in self.services:
+        filtered = self.get_filtered_services()
+        for s in filtered:
             webbrowser.open_new_tab(s["url"])
 
     def export_txt(self):
@@ -384,7 +450,9 @@ class App(tk.Tk):
             datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             ""
         ]
-        for s in self.services:
+        
+        filtered = self.get_filtered_services()
+        for s in filtered:
             lines += [
                 f"Service: {s['service']}",
                 f"  Container: {s['container']}",
@@ -395,7 +463,6 @@ class App(tk.Tk):
 
         Path(file).write_text("\n".join(lines), encoding="utf-8")
         messagebox.showinfo("Exportiert", "Datei gespeichert")
-
 
 # =========================
 # Start
