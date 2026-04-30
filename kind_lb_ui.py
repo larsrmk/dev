@@ -9,6 +9,19 @@ import webbrowser
 import os
 
 # =========================
+# Windows: Taskbar-Icon Fix
+# =========================
+# Zwingt Windows dazu, dieses Skript als eigenständige App zu behandeln.
+# Dadurch wird das eigene .ico auch unten in der Taskleiste angezeigt!
+if os.name == "nt":
+    try:
+        import ctypes
+        myappid = 'k8s.loadbalancer.ui.version1' # Beliebige, aber eindeutige ID
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+    except Exception:
+        pass
+
+# =========================
 # Layout / Design
 # =========================
 WINDOW_W = 1280
