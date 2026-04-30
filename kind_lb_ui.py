@@ -7,7 +7,6 @@ from pathlib import Path
 from datetime import datetime
 import webbrowser
 import os
-import math
 
 # =========================
 # Windows: Console verstecken
@@ -141,12 +140,22 @@ class App(tk.Tk):
         self.services = []
         self.generated = False
         self.scroll_enabled = False
+        self.placeholder_text = "nach Servicenamen suchen..."
 
         self._build_header()
         self._build_controls()
         self._build_content()
 
         self.load_services()
+
+        # Globales Klick-Event für das Entziehen des Fokus
+        self.bind_all("<Button-1>", self._remove_focus, add="+")
+
+    def _remove_focus(self, event):
+        # Fokus wegnehmen, wenn nicht ins Eingabefeld oder auf das X geklickt wird
+        if hasattr(self, "search_entry"):
+            if event.widget not in (self.search_entry, self.search_clear_lbl):
+                self.focus_set()
 
     # ---------- Header ----------
     def _build_header(self):
@@ -230,33 +239,93 @@ class App(tk.Tk):
         )
         self.service_count.pack(side="left", padx=(0, 20))
 
-        # Suchfeld Frame
-        self.search_var = tk.StringVar()
-        self.search_var.trace_add("write", self.on_search_change)
-        
-        self.search_frame = tk.Frame(self.info_row, bg="white", highlightbackground="#ccc", highlightthickness=1)
-        self.search_frame.pack(side="left")
+        # Suchfeld (Abgerundet via Canvas)
+        search_width = 250
+        search_height = 36
+        self.search_canvas = tk.Canvas(
+            self.info_row, 
+            width=search_width, 
+            height=search_height, 
+            bg=COLOR_BG, 
+            highlightthickness=0
+        )
+        self.search_canvas.pack(side="left")
 
+        # Optischer Rahmen + Innere Fläche zeichnen
+        rounded_rect(self.search_canvas, 0, 0, search_width, search_height, 18, "#cccccc")
+        rounded_rect(self.search_canvas, 1, 1, search_width-2, search_height-2, 17, "white")
+
+        self.search_var = tk.StringVar()
+        
         self.search_entry = tk.Entry(
-            self.search_frame, 
+            self.search_canvas, 
             textvariable=self.search_var, 
             bd=0, 
             font=("Segoe UI", 11), 
-            width=25,
-            bg="white"
+            bg="white",
+            fg="grey",
+            highlightthickness=0
         )
-        self.search_entry.pack(side="left", padx=(8, 2), pady=4)
+        self.search_canvas.create_window(15, search_height//2, anchor="w", window=self.search_entry, width=search_width-45)
 
-        # Clear ("X") Button (standardmäßig versteckt)
+        # Clear ("X") Button (direkt auf Canvas positioniert)
         self.search_clear_lbl = tk.Label(
-            self.search_frame, 
+            self.search_canvas, 
             text="✕", 
             bg="white", 
             fg="#999", 
             font=("Segoe UI", 10, "bold"), 
             cursor="hand2"
         )
-        self.search_clear_lbl.bind("<Button-1>", lambda e: self.search_var.set(""))
+        
+        # Events für das Suchfeld
+        self.search_entry.bind("<FocusIn>", self._search_focus_in)
+        self.search_entry.bind("<FocusOut>", self._search_focus_out)
+        self.search_clear_lbl.bind("<Button-1>", self._clear_search)
+        self.search_var.trace_add("write", self.on_search_change)
+
+        # Initiale Setzung des Platzhalters
+        self.search_var.set(self.placeholder_text)
+
+    # --- Platzhalter und Fokus Logik ---
+    def _search_focus_in(self, event):
+        if self.search_var.get() == self.placeholder_text:
+            self.search_var.set("")
+            self.search_entry.config(fg="black")
+
+    def _search_focus_out(self, event):
+        if not self.search_var.get():
+            self.search_var.set(self.placeholder_text)
+            self.search_entry.config(fg="grey")
+
+    def _clear_search(self, event):
+        self.search_var.set("")
+        self.search_entry.focus_set()
+
+    def on_search_change(self, *args):
+        val = self.search_var.get()
+        # Steuerung des "X"-Buttons (nur wenn Text da ist und es nicht der Platzhalter ist)
+        if val and val != self.placeholder_text:
+            self.search_clear_lbl.place(x=235, y=18, anchor="center")
+        else:
+            self.search_clear_lbl.place_forget()
+            
+        filtered = self.get_filtered_services()
+        self.service_count.config(text=f"Services: {len(filtered)}")
+        
+        if self.generated:
+            self.render_cards(filtered)
+        else:
+            self.render_list(filtered)
+
+    def get_filtered_services(self):
+        query = self.search_var.get()
+        if query == self.placeholder_text or not query.strip():
+            return self.services
+        
+        query = query.lower()
+        return [s for s in self.services if query in s['service'].lower()]
+
 
     # ---------- Content ----------
     def _build_content(self):
@@ -315,28 +384,6 @@ class App(tk.Tk):
         self.btn_open_all.pack_forget()
         self.info_row.pack_forget()
         self.render_list()
-
-    def get_filtered_services(self):
-        query = self.search_var.get().lower()
-        if not query:
-            return self.services
-        return [s for s in self.services if query in s['service'].lower()]
-
-    def on_search_change(self, *args):
-        # Steuerung des "X"-Buttons
-        if self.search_var.get():
-            self.search_clear_lbl.pack(side="right", padx=(2, 8))
-        else:
-            self.search_clear_lbl.pack_forget()
-            
-        # UI aktualisieren
-        filtered = self.get_filtered_services()
-        self.service_count.config(text=f"Services: {len(filtered)}")
-        
-        if self.generated:
-            self.render_cards(filtered)
-        else:
-            self.render_list(filtered)
 
     def on_generate(self):
         self.generated = True
@@ -402,6 +449,9 @@ class App(tk.Tk):
             )
             rounded_rect(card, 0, 0, CARD_W, CARD_H, 18, COLOR_CARD)
 
+            # Pfeil hübscher machen
+            port_text = s['port'].replace("->", " → ")
+
             y = 20
             card.create_text(20, y, anchor="w",
                              text=s["service"], font=("Segoe UI", 13, "bold"))
@@ -410,7 +460,7 @@ class App(tk.Tk):
                              text=f"Container: {s['container']}", font=("Segoe UI", 9))
             y += 25
             card.create_text(20, y, anchor="w",
-                             text=f"Port: {s['port']}", font=("Segoe UI", 9))
+                             text=f"Port: {port_text}", font=("Segoe UI", 9))
             y += 25
             card.create_text(20, y, anchor="w",
                              text=s["url"], font=("Segoe UI", 9), fill="#0057d9")
@@ -453,10 +503,12 @@ class App(tk.Tk):
         
         filtered = self.get_filtered_services()
         for s in filtered:
+            # Auch hier für die TXT-Datei den schöneren Pfeil nutzen
+            port_text = s['port'].replace("->", " → ")
             lines += [
                 f"Service: {s['service']}",
                 f"  Container: {s['container']}",
-                f"  Port: {s['port']}",
+                f"  Port: {port_text}",
                 f"  URL: {s['url']}",
                 ""
             ]
