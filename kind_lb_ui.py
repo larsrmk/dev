@@ -138,10 +138,10 @@ class App(tk.Tk):
         self.configure(bg=COLOR_BG)
 
         self.services = []
-        self.new_service_names = set()  # Speichert die Namen der neu erkannten Services
+        self.new_service_names = set()
         self.generated = False
         self.scroll_enabled = False
-        self.placeholder_text = "Nach Service suchen..."
+        self.placeholder_text = "Services gefunden: 0"
 
         self._build_header()
         self._build_controls()
@@ -199,7 +199,6 @@ class App(tk.Tk):
             highlightthickness=0
         )
         bg_id = rounded_rect(c, 0, 0, width, height, radius, COLOR_BTN)
-        # Text bekommt einen Tag ("btn_text"), um ihn später einfach ändern zu können
         c.create_text(width // 2, height // 2, text=text, font=("Segoe UI", 10), tags="btn_text")
         c.bind("<Enter>", lambda e: c.itemconfigure(bg_id, fill=COLOR_BTN_HOVER))
         c.bind("<Leave>", lambda e: c.itemconfigure(bg_id, fill=COLOR_BTN))
@@ -230,16 +229,7 @@ class App(tk.Tk):
         self.info_row.pack(pady=(12, 0))
         self.info_row.pack_forget()
 
-        self.service_count = tk.Label(
-            self.info_row,
-            text="",
-            bg=COLOR_BG,
-            fg="#333",
-            font=("Segoe UI", 12, "bold")
-        )
-        self.service_count.pack(side="left", padx=(0, 20))
-
-        # Suchfeld (Abgerundet via Canvas)
+        # Suchfeld (Abgerundet via Canvas, mittig)
         search_width = 250
         search_height = 36
         self.search_canvas = tk.Canvas(
@@ -249,7 +239,7 @@ class App(tk.Tk):
             bg=COLOR_BG, 
             highlightthickness=0
         )
-        self.search_canvas.pack(side="left")
+        self.search_canvas.pack(anchor="center")
 
         rounded_rect(self.search_canvas, 0, 0, search_width, search_height, 18, "#cccccc")
         rounded_rect(self.search_canvas, 1, 1, search_width-2, search_height-2, 17, "white")
@@ -280,7 +270,13 @@ class App(tk.Tk):
         self.search_clear_lbl.bind("<Button-1>", self._clear_search)
         self.search_var.trace_add("write", self.on_search_change)
 
-        self.search_var.set(self.placeholder_text)
+    def update_placeholder(self):
+        self.placeholder_text = f"Services gefunden: {len(self.services)}"
+        current = self.search_var.get()
+        # Nur aktualisieren, wenn Feld leer ist oder der alte Platzhalter drinsteht
+        if not current or current.startswith("Services gefunden:"):
+            self.search_var.set(self.placeholder_text)
+            self.search_entry.config(fg="grey")
 
     def _search_focus_in(self, event):
         if self.search_var.get() == self.placeholder_text:
@@ -304,7 +300,6 @@ class App(tk.Tk):
             self.search_clear_lbl.place_forget()
             
         filtered = self.get_filtered_services()
-        self.service_count.config(text=f"Services: {len(filtered)}")
         
         if self.generated:
             self.render_cards(filtered)
@@ -317,7 +312,6 @@ class App(tk.Tk):
             return self.services
         query = query.lower()
         return [s for s in self.services if query in s['service'].lower()]
-
 
     # ---------- Content ----------
     def _build_content(self):
@@ -370,14 +364,20 @@ class App(tk.Tk):
 
     # ---------- Logic ----------
     def load_services(self):
-        self.services = resolve_services()
-        self.new_service_names = set()
-        self.generated = False
-        self.btn_export.pack_forget()
-        self.btn_open_all.pack_forget()
-        self.info_row.pack_forget()
-        self.btn_generate.itemconfigure("btn_text", text="Generieren")
-        self.render_list()
+        self.config(cursor="wait")
+        self.update()
+        try:
+            self.services = resolve_services()
+            self.new_service_names = set()
+            self.generated = False
+            self.btn_export.pack_forget()
+            self.btn_open_all.pack_forget()
+            self.info_row.pack_forget()
+            self.btn_generate.itemconfigure("btn_text", text="Generieren")
+            self.update_placeholder()
+            self.render_list()
+        finally:
+            self.config(cursor="")
 
     def handle_main_btn(self):
         if not self.generated:
@@ -392,37 +392,35 @@ class App(tk.Tk):
         self.btn_open_all.pack(pady=(12, 0))
         
         self.info_row.pack(pady=(12, 10))
-        filtered = self.get_filtered_services()
-        self.service_count.config(text=f"Services: {len(filtered)}")
+        self.update_placeholder()
         
-        self.render_cards(filtered)
+        self.render_cards(self.get_filtered_services())
 
     def on_regenerate(self):
-        # 1. Speichere alte Namen
-        old_names = {s['service'] for s in self.services}
-        
-        # 2. Lade neu
-        new_fetched = resolve_services()
-        
-        # 3. Filtere neue vs. alte Services
-        new_services = [s for s in new_fetched if s['service'] not in old_names]
-        existing_services = [s for s in new_fetched if s['service'] in old_names]
-        
-        # 4. Speichere neue Namen für Markierung und sortiere sie nach oben
-        self.new_service_names = {s['service'] for s in new_services}
-        self.services = new_services + existing_services
-        
-        # 5. UI Status auf Listen-Ansicht zurücksetzen
-        self.generated = False
-        self.search_var.set(self.placeholder_text)
-        self.search_entry.config(fg="grey")
-        
-        self.btn_generate.itemconfigure("btn_text", text="Generieren")
-        self.btn_export.pack_forget()
-        self.btn_open_all.pack_forget()
-        self.info_row.pack_forget()
-        
-        self.render_list()
+        self.config(cursor="wait")
+        self.update()
+        try:
+            old_names = {s['service'] for s in self.services}
+            
+            new_fetched = resolve_services()
+            
+            new_services = [s for s in new_fetched if s['service'] not in old_names]
+            existing_services = [s for s in new_fetched if s['service'] in old_names]
+            
+            self.new_service_names = {s['service'] for s in new_services}
+            self.services = new_services + existing_services
+            
+            self.generated = False
+            self.update_placeholder()
+            
+            self.btn_generate.itemconfigure("btn_text", text="Generieren")
+            self.btn_export.pack_forget()
+            self.btn_open_all.pack_forget()
+            self.info_row.pack_forget()
+            
+            self.render_list()
+        finally:
+            self.config(cursor="")
 
     # ---------- Views ----------
     def clear(self):
@@ -452,14 +450,10 @@ class App(tk.Tk):
                 COLOR_CARD
             )
             
-            # Ist das ein neu gefundener Service?
             is_new = s["service"] in self.new_service_names
-            
             if is_new:
-                # Grüner Punkt als Indikator
                 row.create_oval(14, 22, 22, 30, fill="#28a745", outline="")
             
-            # Der Text ist bei x=32 festgeschrieben, unabhängig davon ob ein Punkt da ist
             row.create_text(32, 26, anchor="w",
                             text=s["service"], font=("Segoe UI", 12))
             row.pack(padx=SIDE_PADDING, pady=6)
