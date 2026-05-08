@@ -70,39 +70,36 @@ def docker_ps():
 def docker_inspect(ids):
     return run_json(["docker", "inspect"] + list(ids)) if ids else []
 
-def is_port_alive(host_port, proto):
+
+def get_port_status(host_port, proto):
     """
-    Prüft, ob hinter dem localhost-Port ein erreichbarer Webserver hängt.
-    Timeout ist sehr kurz gesetzt (0.5s), da es eh localhost ist.
+    Prüft den HTTP-Status des Ports.
+    Gibt den HTTP-Statuscode (z.B. 200, 404) zurück oder 0, wenn er nicht erreichbar ist.
     """
     url = f"{proto}://localhost:{host_port}"
     try:
-        # ctx ignorieren (für https ohne zertifikat)
         import ssl
         ctx = ssl.create_default_context()
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
         
-        req = urllib.request.Request(url, method="HEAD") # Nur Header abrufen spart Zeit
-        with urllib.request.urlopen(req, timeout=0.5, context=ctx) as response:
-            return True
-    except urllib.error.HTTPError:
-        # Ein HTTP Error (wie 404, 401, 403) bedeutet: Webserver läuft und antwortet!
-        return True
-    except (urllib.error.URLError, socket.timeout, ConnectionRefusedError):
-        # Verbindung fehlgeschlagen oder Timeout = Webserver läuft dort nicht
-        return False
+        # GET-Request verwenden, Timeout etwas höher für langsame Container
+        req = urllib.request.Request(url, method="GET")
+        with urllib.request.urlopen(req, timeout=0.8, context=ctx) as response:
+            return response.getcode() # in der Regel 200
+    except urllib.error.HTTPError as e:
+        return e.code # Gibt 404, 502 etc. zurück
     except Exception:
-        return False
+        return 0 # Komplett unerreichbar (Connection Refused, Timeout etc.)
+
 
 def pick_relevant_port_string(ports):
     """
-    Gibt den GESAMTEN String des Ports zurück (z.B. '0.0.0.0:9090->9090/tcp'),
-    der tatsächlich erreichbar ist. Wenn keiner erreichbar ist, nimm den ersten.
+    Sucht den besten Port aus der Liste heraus.
+    Priorität: 200 OK > 401/403 (Auth) > Fallback.
+    Ignoriert aktiv 404 und 5xx.
     """
     candidates = []
-    
-    # Alle Host-gebundenen Ports sammeln
     for p in ports:
         if p.startswith("0.0.0.0:") and "->" in p:
             candidates.append(p)
@@ -110,17 +107,32 @@ def pick_relevant_port_string(ports):
     if not candidates:
         return ""
         
-    # Versuche jeden Port zu erreichen
+    best_auth_port = None
+    
     for p in candidates:
-        # Extrahiere den Host-Port, z.B. 9090 aus "0.0.0.0:9090->..."
         host_port = p.split("->")[0].split(":")[-1]
         proto = "https" if "->443/" in p else "http"
         
-        if is_port_alive(host_port, proto):
+        status = get_port_status(host_port, proto)
+        
+        # Perfekter Treffer: 200 OK (oder 3xx Redirect auf eine gültige Seite)
+        if 200 <= status < 400:
             return p
             
-    # Fallback: Wenn wirklich gar nichts antwortet, geben wir den ersten gebundenen Port zurück
+        # Möglicher Treffer: Login-Screen (Unauthorized / Forbidden)
+        if status in (401, 403) and not best_auth_port:
+            best_auth_port = p
+            
+        # 404, 502, 0 etc. werden hier konsequent übersprungen und die Schleife geht zum nächsten Port
+            
+    # Wenn wir keinen 200er gefunden haben, aber einen mit Login-Schutz, nimm den
+    if best_auth_port:
+        return best_auth_port
+        
+    # Absoluter Fallback: Wenn alles tot oder 404 ist, nimm einfach den ersten,
+    # damit zumindest etwas in der UI steht.
     return candidates[0]
+
 
 def resolve_services():
     services = get_loadbalancer_services()
@@ -145,7 +157,7 @@ def resolve_services():
             label = c["labels"].get(LB_LABEL, "")
             if label.endswith(f"/{key}"):
                 
-                # NUTZT NUN DIE NEUE LOGIK MIT HEALTH CHECK!
+                # Ruft die neue schlaue Logik auf
                 port = pick_relevant_port_string(c["ports"])
                 
                 if not port:
@@ -260,7 +272,6 @@ class App(tk.Tk):
     # ---------- Controls ----------
     def _build_controls(self):
         self.controls = tk.Frame(self, bg=COLOR_BG)
-        # pady=25 sorgt für den exakt gleichen Abstand nach oben (zum Header) und unten (zur Liste/zu den Karten)
         self.controls.pack(pady=25)
 
         row1 = tk.Frame(self.controls, bg=COLOR_BG)
@@ -396,14 +407,12 @@ class App(tk.Tk):
         content_height = bbox[3] - bbox[1]
         canvas_height = self.canvas.winfo_height()
 
-        # Scrollen ist nur aktiv, wenn der Inhalt größer ist als das Fenster
         self.scroll_enabled = content_height > canvas_height
 
         if not self.scroll_enabled:
             self.canvas.configure(scrollregion=(0, 0, 0, canvas_height))
             self.canvas.yview_moveto(0)
         else:
-            # +20 Puffer ganz unten, damit es schöner abschließt beim Scrollen
             self.canvas.configure(scrollregion=(bbox[0], bbox[1], bbox[2], bbox[3] + 20))
 
     def _on_mousewheel(self, event):
