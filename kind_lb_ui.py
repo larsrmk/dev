@@ -7,6 +7,9 @@ from pathlib import Path
 from datetime import datetime
 import webbrowser
 import os
+import urllib.request
+import urllib.error
+import socket
 
 # =========================
 # Layout / Design
@@ -67,11 +70,57 @@ def docker_ps():
 def docker_inspect(ids):
     return run_json(["docker", "inspect"] + list(ids)) if ids else []
 
-def pick_relevant_port(ports):
+def is_port_alive(host_port, proto):
+    """
+    Prüft, ob hinter dem localhost-Port ein erreichbarer Webserver hängt.
+    Timeout ist sehr kurz gesetzt (0.5s), da es eh localhost ist.
+    """
+    url = f"{proto}://localhost:{host_port}"
+    try:
+        # ctx ignorieren (für https ohne zertifikat)
+        import ssl
+        ctx = ssl.create_default_context()
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
+        
+        req = urllib.request.Request(url, method="HEAD") # Nur Header abrufen spart Zeit
+        with urllib.request.urlopen(req, timeout=0.5, context=ctx) as response:
+            return True
+    except urllib.error.HTTPError:
+        # Ein HTTP Error (wie 404, 401, 403) bedeutet: Webserver läuft und antwortet!
+        return True
+    except (urllib.error.URLError, socket.timeout, ConnectionRefusedError):
+        # Verbindung fehlgeschlagen oder Timeout = Webserver läuft dort nicht
+        return False
+    except Exception:
+        return False
+
+def pick_relevant_port_string(ports):
+    """
+    Gibt den GESAMTEN String des Ports zurück (z.B. '0.0.0.0:9090->9090/tcp'),
+    der tatsächlich erreichbar ist. Wenn keiner erreichbar ist, nimm den ersten.
+    """
+    candidates = []
+    
+    # Alle Host-gebundenen Ports sammeln
     for p in ports:
         if p.startswith("0.0.0.0:") and "->" in p:
+            candidates.append(p)
+            
+    if not candidates:
+        return ""
+        
+    # Versuche jeden Port zu erreichen
+    for p in candidates:
+        # Extrahiere den Host-Port, z.B. 9090 aus "0.0.0.0:9090->..."
+        host_port = p.split("->")[0].split(":")[-1]
+        proto = "https" if "->443/" in p else "http"
+        
+        if is_port_alive(host_port, proto):
             return p
-    return ""
+            
+    # Fallback: Wenn wirklich gar nichts antwortet, geben wir den ersten gebundenen Port zurück
+    return candidates[0]
 
 def resolve_services():
     services = get_loadbalancer_services()
@@ -95,7 +144,10 @@ def resolve_services():
         for c in docker_data:
             label = c["labels"].get(LB_LABEL, "")
             if label.endswith(f"/{key}"):
-                port = pick_relevant_port(c["ports"])
+                
+                # NUTZT NUN DIE NEUE LOGIK MIT HEALTH CHECK!
+                port = pick_relevant_port_string(c["ports"])
+                
                 if not port:
                     continue
                 host_port = port.split("->")[0].split(":")[-1]
