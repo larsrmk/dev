@@ -401,7 +401,7 @@
         </div>
         <div class="legend-card">
           <strong>Wachsende Sigille</strong>
-          <span>Jedes neue Zeichen erweitert Bögen, Linien, Punkte und Glyphen im Kreis.</span>
+          <span>Jedes neue Zeichen erweitert freie Striche im äußeren Ring.</span>
         </div>
         <div class="legend-card">
           <strong>Eine Datei</strong>
@@ -473,17 +473,13 @@
 
     const runeSet = ['ᚠ','ᚢ','ᚦ','ᚱ','ᚲ','ᚷ','ᚹ','ᚺ','ᚾ','ᛁ','ᛃ','ᛇ','ᛈ','ᛉ','ᛋ','ᛏ','ᛒ','ᛖ','ᛗ','ᛚ','ᛝ','ᛟ','⟡','⟁','⌘','✶','✦','✧','☌','☍','☿','♆'];
     const randomRune = () => runeSet[Math.floor(Math.random() * runeSet.length)];
+    const rand = (min, max) => Math.random() * (max - min) + min;
+    const randi = (min, max) => Math.floor(rand(min, max + 1));
+    const pick = arr => arr[randi(0, arr.length - 1)];
 
     function polar(cx, cy, r, a) {
       const rad = (a - 90) * Math.PI / 180;
       return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
-    }
-
-    function arcPath(cx, cy, r, start, end) {
-      const s = polar(cx, cy, r, end);
-      const e = polar(cx, cy, r, start);
-      const large = end - start <= 180 ? '0' : '1';
-      return `M ${s.x.toFixed(2)} ${s.y.toFixed(2)} A ${r} ${r} 0 ${large} 0 ${e.x.toFixed(2)} ${e.y.toFixed(2)}`;
     }
 
     function line(x1, y1, x2, y2, stroke, width, opacity = 1) {
@@ -519,6 +515,7 @@
       el.setAttribute('stroke', stroke);
       el.setAttribute('stroke-width', width);
       el.setAttribute('stroke-linecap', 'round');
+      el.setAttribute('stroke-linejoin', 'round');
       el.setAttribute('opacity', opacity);
       return el;
     }
@@ -538,6 +535,65 @@
       return el;
     }
 
+    function freeGlyph(cx, cy, baseR) {
+      const startAngle = rand(0, 360);
+      const startR = baseR + rand(-18, 18);
+      const start = polar(cx, cy, startR, startAngle);
+      const segCount = randi(2, 4);
+      const pts = [start];
+      let lastAngle = startAngle + rand(-25, 25);
+      let lastR = startR;
+
+      for (let i = 0; i < segCount; i++) {
+        lastAngle += rand(-65, 65);
+        lastR += rand(-18, 26);
+        lastR = Math.max(130, Math.min(238, lastR));
+        pts.push(polar(cx, cy, lastR, lastAngle));
+      }
+
+      let d = `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`;
+      for (let i = 1; i < pts.length; i++) {
+        const p = pts[i];
+        const prev = pts[i - 1];
+        const mx = ((prev.x + p.x) / 2) + rand(-10, 10);
+        const my = ((prev.y + p.y) / 2) + rand(-10, 10);
+        d += ` Q ${mx.toFixed(2)} ${my.toFixed(2)} ${p.x.toFixed(2)} ${p.y.toFixed(2)}`;
+      }
+
+      const strokeA = Math.random() > 0.5 ? 'rgba(103,232,249,0.82)' : 'rgba(167,139,250,0.82)';
+      const strokeB = Math.random() > 0.5 ? 'rgba(255,255,255,0.74)' : 'rgba(103,232,249,0.54)';
+      const accent = Math.random() > 0.72 ? 'rgba(103,232,249,0.95)' : strokeA;
+
+      const group = document.createElementNS(ns, 'g');
+
+      group.appendChild(path(d, strokeA, rand(1.5, 2.4), 0.92));
+
+      if (Math.random() > 0.25) {
+        const off = pts[randi(0, pts.length - 1)];
+        const tip = polar(cx, cy, rand(136, 245), lastAngle + rand(-28, 28));
+        group.appendChild(line(off.x, off.y, tip.x, tip.y, strokeB, rand(1.0, 1.8), 0.78));
+      }
+
+      if (Math.random() > 0.45) {
+        const a = pts[0];
+        const b = pts[pts.length - 1];
+        const knot = polar(cx, cy, rand(145, 225), startAngle + rand(40, 110));
+        group.appendChild(path(`M ${a.x.toFixed(2)} ${a.y.toFixed(2)} Q ${knot.x.toFixed(2)} ${knot.y.toFixed(2)} ${b.x.toFixed(2)} ${b.y.toFixed(2)}`, 'rgba(255,255,255,0.18)', 1.1, 0.65));
+      }
+
+      if (Math.random() > 0.55) {
+        const p = pick(pts.slice(1));
+        group.appendChild(circle(p.x, p.y, rand(1.8, 3.4), 'none', 0, accent, 0.95));
+      }
+
+      if (Math.random() > 0.7) {
+        const t = pick(pts.slice(1));
+        group.appendChild(textEl(t.x, t.y, randomRune(), randi(14, 20), 'rgba(226,232,240,0.8)', 0.9, rand(-30, 30)));
+      }
+
+      return group;
+    }
+
     function buildSigil(secret) {
       sigil.innerHTML = '';
       const cx = 300;
@@ -554,50 +610,16 @@
       }
 
       const chars = [...secret];
-      chars.forEach((char, index) => {
-        const angle = (360 / chars.length) * index + (Math.random() * 26 - 13);
-        const angle2 = angle + 10 + Math.random() * 18;
-        const outer = 168 + Math.random() * 38;
-        const inner = 70 + Math.random() * 85;
-        const mid = 120 + Math.random() * 55;
-        const p1 = polar(cx, cy, inner, angle);
-        const p2 = polar(cx, cy, outer, angle2);
-        const p3 = polar(cx, cy, mid, angle + (Math.random() * 50 - 25));
-        const hueA = Math.random() > 0.5 ? 'rgba(103,232,249,0.82)' : 'rgba(167,139,250,0.8)';
-        const hueB = Math.random() > 0.5 ? 'rgba(244,244,245,0.75)' : 'rgba(103,232,249,0.55)';
-
-        sigil.appendChild(path(arcPath(cx, cy, outer, angle, angle2 + 10), hueA, 1.8, 0.9));
-        sigil.appendChild(path(arcPath(cx, cy, inner - 10, angle - 8, angle2 - 14), 'rgba(255,255,255,0.14)', 1.1, 0.9));
-        sigil.appendChild(line(cx, cy, p1.x, p1.y, hueB, 1.2, 0.8));
-        sigil.appendChild(line(p1.x, p1.y, p2.x, p2.y, hueA, 1.8, 0.85));
-        sigil.appendChild(circle(p2.x, p2.y, 3 + Math.floor(Math.random() * 3), 'none', 0, 'rgba(103,232,249,0.9)', 0.95));
-        sigil.appendChild(circle(p3.x, p3.y, 2.4, 'rgba(255,255,255,0.4)', 1, 'rgba(255,255,255,0.14)', 0.9));
-
-        if (index % 2 === 0) {
-          const p4 = polar(cx, cy, inner + 12, angle - 14);
-          const p5 = polar(cx, cy, inner + 38, angle + 12);
-          sigil.appendChild(line(p4.x, p4.y, p5.x, p5.y, 'rgba(255,255,255,0.22)', 1, 0.7));
-        }
-
-        if (index % 3 === 0) {
-          const runePos = polar(cx, cy, 232, angle + 2);
-          sigil.appendChild(textEl(
-            runePos.x,
-            runePos.y,
-            randomRune(),
-            18 + Math.floor(Math.random() * 4),
-            'rgba(226,232,240,0.75)',
-            0.9,
-            angle + 90
-          ));
-        }
+      chars.forEach((_, index) => {
+        const baseR = 145 + ((index * 17) % 55);
+        sigil.appendChild(freeGlyph(cx, cy, baseR));
       });
 
-      for (let i = 0; i < Math.min(chars.length, 12); i++) {
+      for (let i = 0; i < Math.min(chars.length, 14); i++) {
         const orbit = 92 + i * 8;
-        const a = i * (360 / Math.min(chars.length, 12)) + (chars.length * 7);
+        const a = i * (360 / Math.min(chars.length, 14)) + rand(-6, 6);
         const p = polar(cx, cy, orbit, a);
-        sigil.appendChild(circle(p.x, p.y, i % 2 === 0 ? 1.8 : 1.2, 'none', 0, 'rgba(167,139,250,0.6)', 0.9));
+        sigil.appendChild(circle(p.x, p.y, i % 2 === 0 ? 1.6 : 1.1, 'none', 0, 'rgba(167,139,250,0.52)', 0.85));
       }
     }
 
