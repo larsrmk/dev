@@ -19,7 +19,6 @@
       --accent: #67e8f9;
       --accent-2: #a78bfa;
       --glow: rgba(103, 232, 249, 0.28);
-      --danger: #fb7185;
       --ok: #34d399;
       --radius: 24px;
       --shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
@@ -473,11 +472,7 @@
     const enterBtn = document.getElementById('enterBtn');
 
     const runeSet = ['ᚠ','ᚢ','ᚦ','ᚱ','ᚲ','ᚷ','ᚹ','ᚺ','ᚾ','ᛁ','ᛃ','ᛇ','ᛈ','ᛉ','ᛋ','ᛏ','ᛒ','ᛖ','ᛗ','ᛚ','ᛝ','ᛟ','⟡','⟁','⌘','✶','✦','✧','☌','☍','☿','♆'];
-
-    function hashChar(char, index) {
-      const code = char.charCodeAt(0);
-      return (code * 31 + index * 17 + (code % 7) * 13) >>> 0;
-    }
+    const randomRune = () => runeSet[Math.floor(Math.random() * runeSet.length)];
 
     function polar(cx, cy, r, a) {
       const rad = (a - 90) * Math.PI / 180;
@@ -554,32 +549,28 @@
       sigil.appendChild(circle(cx, cy, 8, 'rgba(103,232,249,0.85)', 1.5, 'rgba(103,232,249,0.08)', 1));
 
       if (!secret.length) {
-        const hint = textEl(cx, cy + 2, '∴', 28, 'rgba(148,163,184,0.55)');
-        sigil.appendChild(hint);
+        sigil.appendChild(textEl(cx, cy + 2, '∴', 28, 'rgba(148,163,184,0.55)'));
         return;
       }
 
       const chars = [...secret];
       chars.forEach((char, index) => {
-        const h = hashChar(char, index);
-        const angle = (360 / chars.length) * index + (h % 37) - 18;
-        const angle2 = angle + 10 + (h % 22);
-        const outer = 168 + (h % 38);
-        const inner = 70 + (h % 85);
-        const mid = 120 + (h % 55);
-        const start = angle;
-        const end = angle2 + 10;
+        const angle = (360 / chars.length) * index + (Math.random() * 26 - 13);
+        const angle2 = angle + 10 + Math.random() * 18;
+        const outer = 168 + Math.random() * 38;
+        const inner = 70 + Math.random() * 85;
+        const mid = 120 + Math.random() * 55;
         const p1 = polar(cx, cy, inner, angle);
         const p2 = polar(cx, cy, outer, angle2);
-        const p3 = polar(cx, cy, mid, angle + (h % 50) - 25);
-        const hueA = h % 2 === 0 ? 'rgba(103,232,249,0.82)' : 'rgba(167,139,250,0.8)';
-        const hueB = h % 3 === 0 ? 'rgba(244,244,245,0.75)' : 'rgba(103,232,249,0.55)';
+        const p3 = polar(cx, cy, mid, angle + (Math.random() * 50 - 25));
+        const hueA = Math.random() > 0.5 ? 'rgba(103,232,249,0.82)' : 'rgba(167,139,250,0.8)';
+        const hueB = Math.random() > 0.5 ? 'rgba(244,244,245,0.75)' : 'rgba(103,232,249,0.55)';
 
-        sigil.appendChild(path(arcPath(cx, cy, outer, start, end), hueA, 1.8, 0.9));
-        sigil.appendChild(path(arcPath(cx, cy, inner - 10, start - 8, end - 14), 'rgba(255,255,255,0.14)', 1.1, 0.9));
+        sigil.appendChild(path(arcPath(cx, cy, outer, angle, angle2 + 10), hueA, 1.8, 0.9));
+        sigil.appendChild(path(arcPath(cx, cy, inner - 10, angle - 8, angle2 - 14), 'rgba(255,255,255,0.14)', 1.1, 0.9));
         sigil.appendChild(line(cx, cy, p1.x, p1.y, hueB, 1.2, 0.8));
         sigil.appendChild(line(p1.x, p1.y, p2.x, p2.y, hueA, 1.8, 0.85));
-        sigil.appendChild(circle(p2.x, p2.y, 3 + (h % 3), 'none', 0, 'rgba(103,232,249,0.9)', 0.95));
+        sigil.appendChild(circle(p2.x, p2.y, 3 + Math.floor(Math.random() * 3), 'none', 0, 'rgba(103,232,249,0.9)', 0.95));
         sigil.appendChild(circle(p3.x, p3.y, 2.4, 'rgba(255,255,255,0.4)', 1, 'rgba(255,255,255,0.14)', 0.9));
 
         if (index % 2 === 0) {
@@ -590,8 +581,15 @@
 
         if (index % 3 === 0) {
           const runePos = polar(cx, cy, 232, angle + 2);
-          const rune = runeSet[h % runeSet.length];
-          sigil.appendChild(textEl(runePos.x, runePos.y, rune, 18 + (h % 4), 'rgba(226,232,240,0.75)', 0.9, angle + 90));
+          sigil.appendChild(textEl(
+            runePos.x,
+            runePos.y,
+            randomRune(),
+            18 + Math.floor(Math.random() * 4),
+            'rgba(226,232,240,0.75)',
+            0.9,
+            angle + 90
+          ));
         }
       });
 
@@ -615,10 +613,10 @@
         return;
       }
 
-      chars.slice(-18).forEach((char, index) => {
+      chars.slice(-18).forEach(() => {
         const rune = document.createElement('span');
         rune.className = 'ghost-rune';
-        rune.textContent = runeSet[hashChar(char, index) % runeSet.length];
+        rune.textContent = randomRune();
         ghostPreview.appendChild(rune);
       });
     }
