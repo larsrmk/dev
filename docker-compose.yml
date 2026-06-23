@@ -1,0 +1,52 @@
+networks:
+  overleaf-net:
+    driver: bridge
+
+services:
+  sharelatex:
+    image: sharelatex/sharelatex:latest
+    container_name: overleaf_app
+    restart: unless-stopped
+    networks:
+      - overleaf-net
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    ports:
+      - "80:80"
+    environment:
+      OVERLEAF_APP_NAME: "Overleaf Local Test"
+      OVERLEAF_MONGO_URL: "mongodb://mongo:27017/sharelatex?replicaSet=overleaf"
+      OVERLEAF_REDIS_HOST: "redis"
+      REDIS_HOST: "redis"
+      OVERLEAF_SITE_URL: "http://localhost"
+      OVERLEAF_NAV_TITLE: "Overleaf Local"
+    volumes:
+      - ./data/sharelatex:/var/lib/overleaf
+
+  mongo:
+    image: mongo:8.0
+    container_name: overleaf_mongo
+    restart: unless-stopped
+    networks:
+      - overleaf-net
+    command: ["--replSet", "overleaf", "--bind_ip_all"]
+    volumes:
+      - ./data/mongo:/data/db
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh 127.0.0.1:27017/test --quiet
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+
+  redis:
+    image: redis:7
+    container_name: overleaf_redis
+    restart: unless-stopped
+    networks:
+      - overleaf-net
+    volumes:
+      - ./data/redis:/data
