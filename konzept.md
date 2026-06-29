@@ -16,18 +16,13 @@ Sobald das Basis-Cluster operativ ist, werden über KubeVirt drei getrennte, vir
 •	Integra-Cluster: Hier läuft die Stage  integra  (für Integrationstests mit angebundenen Systemen/Datenbanken).
 •	Prod-Cluster: Hier läuft die Stage  prod . Ausschließlich hier werden die finalen, produktiven Live-Anwendungen für die Nutzer betrieben.
 3. Repository-Architektur & GitOps-Struktur
-In Gitea wird die Code-Basis logisch in zwei unterschiedliche Bereiche geteilt, um den Enterprise-Anforderungen gerecht zu werden:
-A. Das Plattform-Repository (1 Repo für die Kerninfrastruktur)
-Für das Basis-Cluster des Labors existiert ein einziges Konfigurations-Repository. Hier liegen die Manifeste zur Installation der Basis-Tools (Argo CD, KubeVirt etc.). Da diese Tools von Open-Source-Herstellern fertig gebaut werden, kompilieren wir hier keinen eigenen Quellcode.
-B. Das Zwei-Repo-Prinzip (2 Repos pro Nutzer-Projekt)
-Für jedes Projekt, in dem Entwickler im Labor selbst Code schreiben, werden zwingend zwei getrennte Repositories angelegt:
-1.	Das App-Repository (Quellcode): Hier arbeiten die Entwickler (z. B. Python-Code). Nur hierauf reagiert die Build-Pipeline (Tekton).
-2.	Das Config-Repository (Infrastruktur): Hier liegen die Kubernetes-Manifeste, die festlegen, wie die Applikation laufen soll. Entwickler haben hier nur Leserechte.
-Die architektonische Notwendigkeit dieser Trennung:
-•	Vermeidung von Endlosschleifen: Ein automatisches Update im Config-Repo löst keinen neuen Code-Build bei Tekton aus.
-•	Rechteverwaltung: Entwickler können ungestört Code pushen, ohne versehentlich Produktionsparameter im Config-Repo zu verändern.
-•	Saubere Historie: Ausfälle sind sofort nachvollziehbar, da die Infrastruktur-Historie nicht durch hunderte Code-Commits der Entwickler unübersichtlich wird.
-•	Der “Out-of-Sync”-Konflikt: Argo CD liest ausschließlich Textdateien aus Git. Würde Argo CD das neueste Image blind direkt aus der OCI-Registry (Harbor) ziehen, käme es zum Konflikt: Das Cluster hätte das neue Image geladen, im Config-Repo stünde aber noch das alte. Argo CD würde diesen Zustand sofort korrigieren und das Cluster zwangsweise wieder auf die alte Version zurücksetzen. Der Weg muss daher zwingend über einen Commit im Config-Repo gehen.
+C. Das “Single-Repo-mit-Branches” Anti-Pattern
+Häufig wird beim Einstieg in GitOps der Versuch unternommen, App-Code und Infrastruktur-Manifeste in einem einzigen Repository zu bündeln und lediglich durch feste Branches (z. B.  main  für Code,  env-prod  für Konfiguration) zu trennen. Dieser Ansatz gilt im Enterprise-Umfeld als massives Anti-Pattern (Fehlarchitektur) und wird aus folgenden technischen Gründen kategorisch ausgeschlossen:
+•	Der Performance-Tod von Argo CD: Argo CD muss den Soll-Zustand kontinuierlich (alle paar Minuten) aus Git auslesen. Ein App-Repository mit Code, Assets und langer Historie wird schnell hunderte Megabyte groß. Zwingt man Argo CD, bei jedem Abgleich das gesamte App-Repo in den Arbeitsspeicher zu klonen, nur um eine winzige YAML-Datei im Config-Branch zu lesen, kollabiert die Performance des Management-Clusters. Getrennte Config-Repos sind extrem klein (wenige Kilobyte) und garantieren pfeilschnelle Synchronisierungen.
+•	Architektonische Git-Semantik: Branches existieren in Git primär dazu, parallele Versionen desselben Codes zu entwickeln, um sie später wieder zusammenzuführen (Merge). App-Code und Kubernetes-Manifeste dienen jedoch völlig unterschiedlichen Zwecken und werden niemals gemergt. Sie in Branches desselben Repositories zu erzwingen, führt unweigerlich zu fehleranfälligen “Orphan Branches” (Branches ohne gemeinsame Historie).
+•	Verzeichnis-Struktur statt Branch-Chaos: Tools wie Kargo und Kustomize (Progressive Delivery) verwalten Stages ( test ,  integra ,  prod ) nach Best-Practice in Verzeichnissen (sogenannten Overlays), nicht in Branches. Liegen alle Stages im selben Config-Repository als Verzeichnisbaum nebeneinander, können Administratoren die Unterschiede zwischen der Test- und Prod-Umgebung auf einen Blick nebeneinander vergleichen. Müsste man hierfür ständig zwischen Git-Branches hin- und herwechseln, wird das Troubleshooting im Notfall extrem unübersichtlich.
+•	Blast Radius (Explosionsradius): Bei einer Kompromittierung des Build-Tokens (Tekton) oder einem fehlerhaften Skript im Code-Branch ist bei einem Ein-Repo-Ansatz potenziell auch die produktive Konfiguration gefährdet. Physisch getrennte Repositories garantieren eine harte Systemgrenze: Das App-Repo kann das Config-Repo niemals infizieren.
+Die physische Trennung in zwei Repositories eliminiert Endlosschleifen, sichert die granulare Rechteverwaltung und hält die Infrastruktur-Historie (“Audit Log”) frei von Entwickler-Commits.
 4. Technologie-Entscheidungen im Detail
 Talos Linux & Sidero Omni
 Im klassischen Betrieb erfordern Standard-Betriebssysteme kontinuierliches Patch-Management und die Absicherung von Benutzerzugängen. Talos Linux ist ein minimales Betriebssystem exklusiv für Kubernetes. Lokale Logins oder Shell-Zugänge existieren architektonisch nicht. Sidero Omni nutzt die API, um das Basis-Cluster vollautomatisch zu provisionieren.
