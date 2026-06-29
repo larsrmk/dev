@@ -16,6 +16,13 @@ Sobald das Basis-Cluster operativ ist, werden über KubeVirt drei getrennte, vir
 •	Integra-Cluster: Hier läuft die Stage  integra  (für Integrationstests mit angebundenen Systemen/Datenbanken).
 •	Prod-Cluster: Hier läuft die Stage  prod . Ausschließlich hier werden die finalen, produktiven Live-Anwendungen für die Nutzer betrieben.
 3. Repository-Architektur & GitOps-Struktur
+In Gitea wird die Code-Basis logisch in unterschiedliche Bereiche geteilt. Um eine saubere und skalierbare Struktur zu gewährleisten, gelten strenge Vorgaben für die Trennung und Benennung der Repositories.
+A. Das Plattform-Repository (1 Repo für die Kerninfrastruktur)
+Für das Basis-Cluster des Labors existiert ein einziges Konfigurations-Repository. Hier liegen die Manifeste zur Installation der Basis-Tools (Argo CD, KubeVirt etc.). Da diese Tools von Open-Source-Herstellern gebaut werden, kompilieren wir hier keinen eigenen Quellcode.
+B. Das Zwei-Repo-Prinzip (2 Repos pro Nutzer-Projekt)
+Für jedes Projekt (z.B. ein Projekt namens  akl ), in dem Entwickler im Labor selbst Code schreiben, werden zwingend zwei getrennte Repositories mit festen Namenskonventionen angelegt:
+1.	Das App-Repository (z. B.  akl-app  oder  akl-src ): Hier arbeiten die Entwickler (z. B. Python-Code, Assets, Dokumentation). Nur hierauf reagiert die Build-Pipeline (Tekton).
+2.	Das Config-Repository (z. B.  akl-config  oder  akl-gitops ): Hier liegen die Kubernetes-Manifeste, die festlegen, wie die Applikation laufen soll. Entwickler haben hier nur Leserechte; automatisierte Tools (Kargo) schreiben hier neue Release-Versionen hinein.
 C. Das “Single-Repo-mit-Branches” Anti-Pattern
 Häufig wird beim Einstieg in GitOps der Versuch unternommen, App-Code und Infrastruktur-Manifeste in einem einzigen Repository zu bündeln und lediglich durch feste Branches (z. B.  main  für Code,  env-prod  für Konfiguration) zu trennen. Dieser Ansatz gilt im Enterprise-Umfeld als massives Anti-Pattern (Fehlarchitektur) und wird aus folgenden technischen Gründen kategorisch ausgeschlossen:
 •	Der Performance-Tod von Argo CD: Argo CD muss den Soll-Zustand kontinuierlich (alle paar Minuten) aus Git auslesen. Ein App-Repository mit Code, Assets und langer Historie wird schnell hunderte Megabyte groß. Zwingt man Argo CD, bei jedem Abgleich das gesamte App-Repo in den Arbeitsspeicher zu klonen, nur um eine winzige YAML-Datei im Config-Branch zu lesen, kollabiert die Performance des Management-Clusters. Getrennte Config-Repos sind extrem klein (wenige Kilobyte) und garantieren pfeilschnelle Synchronisierungen.
