@@ -56,55 +56,62 @@ Kargo orchestriert das stufenweise Ausrollen (“Progressive Delivery”) von So
 
 ```mermaid
 graph TD
-    subgraph Externe_Dienste ["Unternehmensnetzwerk"]
-        PXE[PXE-Boot-Server]
-        Harbor[Externe Harbor Registry]
+    %% Styling Definitionen für mehr Übersichtlichkeit
+    classDef external fill:#f3f4f6,stroke:#9ca3af,stroke-width:2px,stroke-dasharray: 5 5
+    classDef hardware fill:#1e293b,stroke:#000,stroke-width:2px,color:#fff
+    classDef base fill:#0284c7,stroke:#0369a1,stroke-width:2px,color:#fff
+    classDef tool fill:#f8fafc,stroke:#cbd5e1,stroke-width:2px
+    classDef virt fill:#10b981,stroke:#047857,stroke-width:2px,color:#fff
+    classDef tenant fill:#fef08a,stroke:#0369a1,stroke-width:2px
+
+    subgraph Externe_Dienste ["🏢 Externe Unternehmens-Dienste"]
+        PXE[PXE-Boot-Server]:::external
+        Harbor[Harbor OCI-Registry]:::external
     end
 
-    subgraph Labor_Infrastruktur ["Labor Infrastruktur"]
+    subgraph Schicht_1 ["Schicht 1: Hardware (Bare Metal)"]
+        MS[Management Server<br/>Sidero Omni]:::hardware
+        Nodes[8x Compute Nodes]:::hardware
+    end
+
+    subgraph Schicht_2 ["Schicht 2: Basis-Cluster (Die Management-Ebene)"]
+        Talos[Talos Linux Kubernetes Cluster]:::base
         
-        subgraph Schicht_2 ["Schicht 2: Physisches Basis-Cluster (Bare Metal)"]
-            K8s_Base[Talos Kubernetes Cluster inkl. Cilium/BGP]
+        subgraph Tools ["Management- & GitOps-Stack"]
+            direction LR
+            Gitea(Gitea)
+            Tekton(Tekton)
+            Kargo(Kargo)
+            Argo(Argo CD)
+            Auth(Authentik)
             
-            subgraph Tools ["Labor-Verwaltungstools"]
-                Gitea[Gitea: App- & Config-Repos]
-                Tekton[Tekton: CI-Pipelines]
-                Kargo[Kargo: Release Manager 'on top']
-                Argo[Argo CD: GitOps Sync]
-                Auth[Authentik: Identity Provider]
-            end
-        end
-
-        subgraph Schicht_3 ["Schicht 3: Virtualisierung"]
-            KubeVirt[KubeVirt Operator]
-        end
-
-        subgraph Schicht_4 ["Schicht 4: Virtuelle Tenant-Cluster"]
-            VM_Test[Test-Cluster -> Stage: test]
-            VM_Integra[Integra-Cluster -> Stage: integra]
-            VM_Prod[Prod-Cluster -> Stage: prod / Produktiv]
+            Gitea ~~~ Tekton ~~~ Kargo ~~~ Argo ~~~ Auth
         end
     end
 
-    %% Init & Virtualization
-    PXE -->|1. Hardware-Init| K8s_Base
-    K8s_Base --- Tools
-    K8s_Base --- KubeVirt
-    KubeVirt -.->|Bereitstellung| VM_Test
-    KubeVirt -.->|Bereitstellung| VM_Integra
-    KubeVirt -.->|Bereitstellung| VM_Prod
+    subgraph Schicht_3 ["Schicht 3: Virtualisierung"]
+        KV[KubeVirt]:::virt
+    end
 
-    %% GitOps Workflow
-    Gitea -->|2. Trigger| Tekton
-    Tekton -->|3. Push Image| Harbor
-    Harbor -->|4. Erkennt Image| Kargo
-    Kargo -->|5. Schreibt logische Stages| Gitea
-    Gitea -->|6. Sync 'Test'| Argo
-    Argo -.->|Deploy| VM_Test
-    Gitea -.->|7. Sync 'Integra'| Argo
-    Argo -.->|Deploy| VM_Integra
-    Gitea -.->|8. Sync 'Prod'| Argo
-    Argo -.->|Deploy Live-Workload| VM_Prod
+    subgraph Schicht_4 ["Schicht 4: Virtuelle Tenant-Cluster (App-Ebene)"]
+        direction LR
+        Test[Test-Cluster<br>Stage: test]:::tenant
+        Integra[Integra-Cluster<br>Stage: integra]:::tenant
+        Prod[Prod-Cluster<br>Stage: prod]:::tenant
+        
+        Test ~~~ Integra ~~~ Prod
+    end
+
+    %% Vertikaler Aufbau (Die Abhängigkeiten)
+    PXE -.->|Initialisiert einmalig| MS
+    Harbor -.->|Liefert Images an| Schicht_2
+    
+    MS ==>|Provisioniert automatisch| Nodes
+    Nodes ==>|Bilden das| Talos
+    Talos --- Tools
+    
+    Talos ==>|Hostet als native Erweiterung| KV
+    KV ==>|Stellt isolierte VMs bereit für| Test & Integra & Prod
 
 ```
 
